@@ -20,7 +20,7 @@ create table vehicle (
 	odometer integer not null,
 	status varchar(20) not null,
 	vtname varchar(20) not null,
-	location varchar(50),
+	location integer,
 	city varchar(20),
 	foreign key (vtname) references vt,
 	unique (vlicence, vid)
