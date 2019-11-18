@@ -167,9 +167,21 @@ public class SR implements ActionListener {
 			while (!quit)
 			{
 				System.out.print("\n\nPlease choose one of the following: \n");
-				System.out.print("1.  Make reservation\n");
-				System.out.print("8.  Show customer\n");
-				System.out.print("9.  Show reservation\n");
+				System.out.print("1.  Search vehicle\n");
+				System.out.print("2.  Make reservation\n");
+				System.out.print("3.  Rent a vehicle\n");
+				System.out.print("4.  Return a vehicle\n");
+				System.out.print("5.  Daily total rental\n");
+				System.out.print("6.  Daily branch rental\n");
+				System.out.print("7.  Daily total return\n");
+                System.out.print("8.  Daily branch return\n");
+                System.out.print("9.  Edit database\n");
+				System.out.print("10.  Show customer\n");
+				System.out.print("20.  Show reservation\n");
+				System.out.print("30.  Show rent\n");
+				System.out.print("40.  Show return\n");
+				System.out.print("50.  Show vehicle\n");
+				System.out.print("60.  Show vehicle types\n");
 				System.out.print("0.  Quit\n>> ");
 
 				choice = Integer.parseInt(in.readLine());
@@ -178,10 +190,22 @@ public class SR implements ActionListener {
 
 				switch(choice)
 				{
-                    case 1:  makeReservation(); break;
-                    case 8:  showCustomer(); break;
-                    case 9:  showReservation(); break;
-					case 0:  quit = true;
+                    case 1:   searchVehicle(); break;
+                    case 2:   makeReservation(); break;
+                    case 3:   rentVehicle(); break;
+                    case 4:   returnVehicle(); break;
+                    case 5:   totalRental(); break;
+                    case 6:   branchRental(); break;
+                    case 7:   totalReturn(); break;
+                    case 8:   branchReturn(); break;
+                    case 9:   editTable(); break;
+                    case 10:  showCustomer(); break;
+                    case 20:  showReservation(); break;
+                    case 30:  showRent(); break;
+                    case 40:  showReturn(); break;
+                    case 50:  showVehicle(); break;
+                    case 60:  showVehicleType(); break;
+					case 0:   quit = true;
 				}
 			}
 
@@ -201,6 +225,10 @@ public class SR implements ActionListener {
 		} catch (SQLException ex) {
 			System.out.println("Message: " + ex.getMessage());
 		}
+    }
+
+    private void searchVehicle() {
+
     }
     
     private void makeReservation() {
@@ -409,6 +437,33 @@ public class SR implements ActionListener {
         }
     }
 
+    private void rentVehicle() {
+
+    }
+
+    private void returnVehicle() {
+
+    }
+
+    private void totalRental() {
+
+    }
+
+    private void branchRental() {
+
+    }
+
+    private void totalReturn() {
+
+    }
+
+    private void branchReturn() {
+
+    }
+
+    private void editTable() {
+    }
+
     private void showCustomer() {
 		int         dlicence;
 		int         cellphone;
@@ -521,6 +576,318 @@ public class SR implements ActionListener {
                 
                 untilDate = rs.getTimestamp("toDate");
 				System.out.printf("%-25s\n", untilDate);
+			}
+	
+		// close the statement; 
+		// the ResultSet will also be closed
+		stmt.close();
+		}
+		catch (SQLException ex) {
+			System.out.println("Message: " + ex.getMessage());
+		}	
+    }
+
+    private void showRent() {
+        int         rid;
+        String      vlicence;
+        int         dlicence;
+        Timestamp   fromDate;
+        Timestamp   untilDate;
+        int         odometer;
+        String      cardName;
+        String      cardNo;
+        Date        expDate;
+        int         confNo;
+		Statement   stmt;
+		ResultSet   rs;
+	   
+		try {
+			stmt = con.createStatement();
+
+			rs = stmt.executeQuery("SELECT * FROM rent");
+
+			// get info on ResultSet
+			ResultSetMetaData rsmd = rs.getMetaData();
+
+			// get number of columns
+			int numCols = rsmd.getColumnCount();
+
+			System.out.println(" ");
+			
+			// display column names;
+			for (int i = 0; i < numCols; i++) {
+                // get column name and print it
+                if(rsmd.getColumnName(i+1).equals("FROMDATE") || rsmd.getColumnName(i+1).equals("TODATE")) {
+                    System.out.printf("%-25s", rsmd.getColumnName(i+1));
+                } else {
+                    System.out.printf("%-15s", rsmd.getColumnName(i+1));
+                }
+			}
+
+			System.out.println(" ");
+
+			while(rs.next()) {
+				// for display purposes get everything from Oracle 
+				// as a string
+
+				// simplified output formatting; truncation may occur
+
+				rid = rs.getInt("rid");
+                System.out.printf("%-15s", rid);
+                
+                vlicence = rs.getString("vlicence");
+                System.out.printf("%-15s", vlicence);
+                
+                dlicence = rs.getInt("dlicence");
+                System.out.printf("%-15s", dlicence);
+                
+                fromDate = rs.getTimestamp("fromDate");
+                System.out.printf("%-25s", fromDate);
+                
+                untilDate = rs.getTimestamp("toDate");
+                System.out.printf("%-25s\n", untilDate);
+                
+                odometer = rs.getInt("odometer");
+                System.out.printf("%-15s", odometer);
+
+                cardName = rs.getString("cardName");
+                System.out.printf("%-15s", cardName);
+
+                cardNo = rs.getString("cardNo");
+                System.out.printf("%-15s", cardNo);
+
+                expDate = rs.getDate("expDate");
+                System.out.prinf("%-15s", expDate);
+
+                confNo = rs.getInt("confNo");
+                System.out.prinf("%-15s", confNo);
+			}
+	
+		// close the statement; 
+		// the ResultSet will also be closed
+		stmt.close();
+		}
+		catch (SQLException ex) {
+			System.out.println("Message: " + ex.getMessage());
+		}	
+    }
+
+    private void showReturn() {
+        int         rid;
+        Timestamp   returnDate;
+        int         odometer;
+        String      fullTank;
+        float       value;
+		Statement   stmt;
+		ResultSet   rs;
+	   
+		try {
+			stmt = con.createStatement();
+
+			rs = stmt.executeQuery("SELECT * FROM reservation");
+
+			// get info on ResultSet
+			ResultSetMetaData rsmd = rs.getMetaData();
+
+			// get number of columns
+			int numCols = rsmd.getColumnCount();
+
+			System.out.println(" ");
+			
+			// display column names;
+			for (int i = 0; i < numCols; i++) {
+                // get column name and print it
+                if(rsmd.getColumnName(i+1).equals("RETURN_DATE")) {
+                    System.out.printf("%-25s", rsmd.getColumnName(i+1));
+                } else {
+                    System.out.printf("%-15s", rsmd.getColumnName(i+1));
+                }
+			}
+
+			System.out.println(" ");
+
+			while(rs.next()) {
+				// for display purposes get everything from Oracle 
+				// as a string
+
+				// simplified output formatting; truncation may occur
+
+				rid = rs.getInt("rid");
+                System.out.printf("%-15s", rid);
+                
+                returnDate = rs.getTimestamp("return_date");
+                System.out.printf("%-25s", returnDate);
+                
+                odometer = rs.getInt("odometer");
+                System.out.printf("%-15s", odometer);
+                
+                fullTank = rs.getString("fullTank");
+                System.out.printf("%-15s", fullTank);
+
+                value = rs.getFloat("value");
+                System.out.printf("%-15s", value);
+			}
+	
+		// close the statement; 
+		// the ResultSet will also be closed
+		stmt.close();
+		}
+		catch (SQLException ex) {
+			System.out.println("Message: " + ex.getMessage());
+		}	
+    }
+
+    private void showVehicle() {
+        String      vlicence;
+        int         vid;
+        String      make;
+        String      model;
+        int         year;
+        String      color;
+        int         odometer;
+        String      status;
+        String      vtname;
+        int         location;
+        String      city;
+		Statement   stmt;
+		ResultSet   rs;
+	   
+		try {
+			stmt = con.createStatement();
+
+			rs = stmt.executeQuery("SELECT * FROM vehicle");
+
+			// get info on ResultSet
+			ResultSetMetaData rsmd = rs.getMetaData();
+
+			// get number of columns
+			int numCols = rsmd.getColumnCount();
+
+			System.out.println(" ");
+			
+			// display column names;
+			for (int i = 0; i < numCols; i++) {
+                // get column name and print it
+                System.out.printf("%-15s", rsmd.getColumnName(i+1));
+			}
+
+			System.out.println(" ");
+
+			while(rs.next()) {
+				// for display purposes get everything from Oracle 
+				// as a string
+
+				// simplified output formatting; truncation may occur
+               
+                
+				vlicence = rs.getString("vlicence");
+                System.out.printf("%-15s", vlicence);
+                
+                vid = rs.getInt("vid");
+                System.out.printf("%-25s", vid);
+                
+                make = rs.getString("make");
+                System.out.printf("%-15s", make);
+                
+                model = rs.getString("model");
+                System.out.printf("%-15s", model);
+
+                year = rs.getInt("year");
+                System.out.printf("%-15s", year);
+                
+                color = rs.getString("color");
+                System.out.printf("%-15s", color);
+                
+                odometer = rs.getInt("odometer");
+                System.out.printf("%-15s", odometer);
+                
+                status = rs.getString("status");
+                System.out.printf("%-15s", status);
+                
+                vtname = rs.getString("vtname");
+                System.out.printf("%-15s", vtname);
+
+                location = rs.getInt("location");
+                System.out.printf("%-15s", location);
+                
+                city = rs.getString("city");
+                System.out.printf("%-15s", city);
+			}
+	
+		// close the statement; 
+		// the ResultSet will also be closed
+		stmt.close();
+		}
+		catch (SQLException ex) {
+			System.out.println("Message: " + ex.getMessage());
+		}	
+    }
+
+    private void showVehicleType() {
+        String      vtname;
+        String      feature;
+        int         wrate;
+        int         drate;
+        int         hrate;
+        int         wirate;
+        int         dirate;
+        int         hirate;
+        int         krate;
+		Statement   stmt;
+		ResultSet   rs;
+	   
+		try {
+			stmt = con.createStatement();
+
+			rs = stmt.executeQuery("SELECT * FROM vt");
+
+			// get info on ResultSet
+			ResultSetMetaData rsmd = rs.getMetaData();
+
+			// get number of columns
+			int numCols = rsmd.getColumnCount();
+
+			System.out.println(" ");
+			
+			// display column names;
+			for (int i = 0; i < numCols; i++) {
+                // get column name and print it
+                    System.out.printf("%-15s", rsmd.getColumnName(i+1));
+			}
+
+			System.out.println(" ");
+
+			while(rs.next()) {
+				// for display purposes get everything from Oracle 
+				// as a string
+
+				// simplified output formatting; truncation may occur
+                vtname = rs.getString("vtname");
+                System.out.printf("%-15s", vtname);
+                
+                feature = rs.getString("feature");
+                System.out.printf("%-25s", feature);
+                
+                wrate = rs.getInt("wrate");
+                System.out.printf("%-15s", wrate);
+                
+                drate = rs.getInt("drate");
+                System.out.printf("%-15s", drate);
+
+                hrate = rs.getInt("hrate");
+                System.out.printf("%-15s", hrate);
+
+                wirate = rs.getInt("wirate");
+                System.out.printf("%-15s", wirate);
+                
+                dirate = rs.getInt("dirate");
+                System.out.printf("%-15s", dirate);
+
+                hirate = rs.getInt("hirate");
+                System.out.printf("%-15s", hirate);
+
+                krate = rs.getInt("krate");
+                System.out.printf("%-15s", krate);
 			}
 	
 		// close the statement; 
