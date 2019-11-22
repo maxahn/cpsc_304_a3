@@ -2,6 +2,8 @@
 import java.sql.*;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
+import java.time.format.DateTimeFormatter;  
+import java.time.LocalDateTime;
 // for reading from the command line
 import java.io.*;
 
@@ -462,82 +464,77 @@ public class SR implements ActionListener {
         ResultSet   vehicle;
 
         try {
-            while(confirm == 3) {
-                while (true) {
-                    stmt = con.createStatement();
-                    System.out.println("What is your confirmation number?\n-1 if you haven't made one");
-                    confNo = Integer.parseInt(in.readLine());
-                    System.out.println(" ");
-                    if (confNo == -1) {
-                        makeReservation();
-                    } else {
-                        // find reservation number and correlated data
-                        reservation = stmt.executeQuery("SELECT * FROM reservation WHERE confNo =" + confNo);
-                        reservation.next();
-                        if (reservation != null) {
-                            vt = reservation.getString("vtname");
-                            dlicence = reservation.getInt("dlicence");
-                            fromDate = reservation.getTimestamp("fromDate");
-                            toDate = reservation.getTimestamp("toDate");
-                            vehicle = stmt.executeQuery("SELECT * FROM vehicle WHERE status LIKE 'available' AND vtname LIKE '" + vt + "'");
-                            // get vehicle data
-                            // TODO: if case where no vehicle available?
-                            // get last vehicle that fits given requirements
-                            while (vehicle.next()) {
-                                vlicence = vehicle.getString("vlicence");
-                                odometer = vehicle.getInt("odometer");
-                                city = vehicle.getString("city");
-                            }
-
-                            stmt.executeQuery(" UPDATE vehicle SET status = 'rented' WHERE vlicence = '" + vlicence + "'");
-
-                            // create rent ID
-                            rs = stmt.executeQuery("SELECT MAX(rid) AS r FROM rent");
-                            while(rs.next()) {
-                                rid = rs.getInt("r") + 1;
-                            }
-                            System.out.println("Enter card name: ");
-                            cardName = in.readLine();
-
-                            System.out.println("Enter card number: ");
-                            cardName = in.readLine();
-
-                            //TODO: take first 4 characters, all strictly numeric
-                            System.out.println("Enter card expiry date (MMYY): ");
-                            cardName = in.readLine();
-
-                            // print receipt
-                            System.out.println("Receipt: ");
-
-                            System.out.println("Confirmation number: ");
-                            System.out.printf("%-15s\n", confNo);
-
-                            System.out.println("Vehicle type: ");
-                            System.out.printf("%-15s\n", vt);
-
-                            System.out.println("Drivers licence: ");
-                            System.out.printf("%-15s\n", dlicence);
-
-                            System.out.println("From: ");
-                            System.out.printf("%-25s\n", fromDate);
-
-                            System.out.println("To: ");
-                            System.out.printf("%-25s\n", toDate);
-
-                            System.out.println("City: ");
-                            System.out.printf("%-15s\n", odometer);
-
-                            System.out.printf("%-15s\n", vlicence);
-
-                            // missing comma error for some reason,
-                            // someone please enlighten me.
-                            stmt.executeUpdate("INSERT into rent values (" + rid + ", '" + vlicence + "', " + dlicence + ", " + fromDate + ", " + toDate + ", " + odometer + ", '" + cardName + "', '" + cardNo + "', TO_DATE('" + expDate +  "', 'mm/yy'), " + confNo + ")");
-                            break;
+            while (true) {
+                stmt = con.createStatement();
+                System.out.println("What is your confirmation number?\n-1 if you haven't made one");
+                confNo = Integer.parseInt(in.readLine());
+                System.out.println(" ");
+                if (confNo == -1) {
+                    makeReservation();
+                } else {
+                    // find reservation number and correlated data
+                    reservation = stmt.executeQuery("SELECT * FROM reservation WHERE confNo =" + confNo);
+                    reservation.next();
+                    if (reservation != null) {
+                        vt = reservation.getString("vtname");
+                        dlicence = reservation.getInt("dlicence");
+                        fromDate = reservation.getTimestamp("fromDate");
+                        toDate = reservation.getTimestamp("toDate");
+                        vehicle = stmt.executeQuery("SELECT * FROM vehicle WHERE status LIKE 'available' AND vtname LIKE '" + vt + "'");
+                        // get vehicle data
+                        // TODO: if case where no vehicle available?
+                        // get last vehicle that fits given requirements
+                        while (vehicle.next()) {
+                            vlicence = vehicle.getString("vlicence");
+                            odometer = vehicle.getInt("odometer");
+                            city = vehicle.getString("city");
                         }
+
+                        // create rent ID
+                        rs = stmt.executeQuery("SELECT MAX(rid) AS r FROM rent");
+                        while(rs.next()) {
+                            rid = rs.getInt("r") + 1;
+                        }
+                        System.out.println("Enter card name: ");
+                        cardName = in.readLine();
+
+                        System.out.println("Enter card number: ");
+                        cardName = in.readLine();
+
+                        //TODO: take first 4 characters, all strictly numeric
+                        System.out.println("Enter card expiry date (MMYY): ");
+                        cardName = in.readLine();
+
+                        // print receipt
+                        System.out.println("Receipt: ");
+
+                        System.out.println("Confirmation number: ");
+                        System.out.printf("%-15s\n", confNo);
+
+                        System.out.println("Vehicle type: ");
+                        System.out.printf("%-15s\n", vt);
+
+                        System.out.println("Drivers licence: ");
+                        System.out.printf("%-15s\n", dlicence);
+
+                        System.out.println("From: ");
+                        System.out.printf("%-25s\n", fromDate);
+
+                        System.out.println("To: ");
+                        System.out.printf("%-25s\n", toDate);
+
+                        System.out.println("City: ");
+                        System.out.printf("%-15s\n", city);
+
+                        // missing comma error for some reason,
+                        // someone please enlighten me.
+                        stmt.executeUpdate("INSERT into rent values (" + rid + ", '" + vlicence + "', " + dlicence + ", timestamp '"  + fromDate + "', timestamp '" + toDate + "', " + odometer + ", '" + cardName + "', '" + cardNo + "', TO_DATE('" + expDate +  "', 'mm/yy'), " + confNo + ")");
+                        stmt.executeQuery(" UPDATE vehicle SET status = 'rented' WHERE vlicence = '" + vlicence + "'");
+                        break;
                     }
                 }
-                stmt.close();
             }
+            stmt.close();
         } catch (IOException e) {
             System.out.println("IOException!");
             try {
@@ -552,7 +549,58 @@ public class SR implements ActionListener {
     }
 
     private void returnVehicle() {
+        int         rid;
+        int         odometer;
+        String      vlicence = "";
+        String      fulltank = "";
+        Statement   stmt;
+        ResultSet   rent;
+        ResultSet   vehicle;
+        Timestamp   return_date;
+        DateTimeFormatter dtf;
+        try {
+            stmt = con.createStatement();
+            System.out.println("What is your rent ID?");
+            rid = Integer.parseInt(in.readLine());
+            
+            // get vlicence, odometer
+            rent = stmt.executeQuery("SELECT * FROM rent WHERE rid = " + rid);
+            if (rent.next()) {
+                vlicence = rent.getString("vlicence");
+            }
+            if (vlicence != "") {
+                // odometer?
+                System.out.println("Odometer?");
+                odometer = Integer.parseInt(in.readLine());
 
+                // is tank full?
+                System.out.println("Is the tank full? T for full, F if it is not full.");
+                fulltank = in.readLine();
+                fulltank.toUpperCase();
+
+                // get current date time
+                // convert into string, then format
+                LocalDateTime now = LocalDateTime.now();
+
+                // update vehicle status back to available
+                // create new tuple in return
+                stmt.executeQuery("UPDATE vehicle SET status = 'available' WHERE vlicence = '" + vlicence + "'");
+                stmt.executeQuery("INSERT INTO return VALUES(" + rid + ", TO_TIMESTAMP('" + now +  "', 'YYYY-MM-DD HH24:MI:SS'), " + odometer + ", '" + fulltank + "', 123)"); 
+            } else {
+                System.out.println("Rent ID not found");
+            }
+            stmt.close();
+        } catch (IOException e) {
+            System.out.println("IOException!");
+            try {
+                con.close();
+                System.exit(-1);
+            } catch (SQLException ex) {
+                System.out.println("Message: " + ex.getMessage());
+            }
+        } catch (SQLException ex) {
+            System.out.println("Message: " + ex.getMessage());
+        }
     }
 
     private void totalRental() {
