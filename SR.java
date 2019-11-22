@@ -438,7 +438,112 @@ public class SR implements ActionListener {
     }
 
     private void rentVehicle() {
+        int         confNo = 0;
+        int         rid = 0;
+        int         confirm = 3;
+        int         odometer = 0;
+        int         dlicence = 0;
+        String      cardName = "";
+        Date        expDate = new Date();
+        String      cardNo = "";
+        String      vt = "";
+        String      vlicence = "";
+        String      city = "";
+        Timestamp   fromDate;
+        Timestamp   toDate;
+        Statement   stmt;
+        ResultSet   rs;
+        ResultSet   reservation;
+        ResultSet   vehicle;
 
+        try {
+            while(confirm == 3) {
+                while (true) {
+                    stmt = con.createStatement();
+                    System.out.println("What is your confirmation number?\n-1 if you haven't made one");
+                    confNo = Integer.parseInt(in.readLine());
+                    System.out.println(" ");
+                    if (confNo == -1) {
+                        makeReservation();
+                    } else {
+                        // find reservation number and correlated data
+                        reservation = stmt.executeQuery("SELECT * FROM reservation WHERE confNo =" + confNo);
+                        reservation.next();
+                        if (reservation != null) {
+                            vt = reservation.getString("vtname");
+                            dlicence = reservation.getInt("dlicence");
+                            fromDate = reservation.getTimestamp("fromDate");
+                            toDate = reservation.getTimestamp("toDate");
+                            vehicle = stmt.executeQuery("SELECT * FROM vehicle WHERE status LIKE 'available' AND vtname LIKE '" + vt + "'");
+                            // get vehicle data
+                            // TODO: if case where no vehicle available?
+                            // get last vehicle that fits given requirements
+                            while (vehicle.next()) {
+                                vlicence = vehicle.getString("vlicence");
+                                odometer = vehicle.getInt("odometer");
+                                city = vehicle.getString("city");
+                            }
+
+                            stmt.executeQuery(" UPDATE vehicle SET status = 'rented' WHERE vlicence = '" + vlicence + "'");
+
+                            // create rent ID
+                            rs = stmt.executeQuery("SELECT MAX(rid) AS r FROM rent");
+                            while(rs.next()) {
+                                rid = rs.getInt("r") + 1;
+                            }
+                            System.out.println("Enter card name: ");
+                            cardName = in.readLine();
+
+                            System.out.println("Enter card number: ");
+                            cardName = in.readLine();
+
+                            //TODO: take first 4 characters, all strictly numeric
+                            System.out.println("Enter card expiry date (MMYY): ");
+                            cardName = in.readLine();
+
+                            // print receipt
+                            System.out.println("Receipt: ");
+
+                            System.out.println("Confirmation number: ");
+                            System.out.printf("%-15s\n", confNo);
+
+                            System.out.println("Vehicle type: ");
+                            System.out.printf("%-15s\n", vt);
+
+                            System.out.println("Drivers licence: ");
+                            System.out.printf("%-15s\n", dlicence);
+
+                            System.out.println("From: ");
+                            System.out.printf("%-25s\n", fromDate);
+
+                            System.out.println("To: ");
+                            System.out.printf("%-25s\n", toDate);
+
+                            System.out.println("City: ");
+                            System.out.printf("%-15s\n", odometer);
+
+                            System.out.printf("%-15s\n", vlicence);
+
+                            // missing comma error for some reason,
+                            // someone please enlighten me.
+                            stmt.executeUpdate("INSERT into rent values (" + rid + ", '" + vlicence + "', " + dlicence + ", " + fromDate + ", " + toDate + ", " + odometer + ", '" + cardName + "', '" + cardNo + "', TO_DATE('" + expDate +  "', 'mm/yy'), " + confNo + ")");
+                            break;
+                        }
+                    }
+                }
+                stmt.close();
+            }
+        } catch (IOException e) {
+            System.out.println("IOException!");
+            try {
+                con.close();
+                System.exit(-1);
+            } catch (SQLException ex) {
+                System.out.println("Message: " + ex.getMessage());
+            }
+        } catch (SQLException ex) {
+            System.out.println("Message: " + ex.getMessage());
+        }
     }
 
     private void returnVehicle() {
