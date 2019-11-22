@@ -193,7 +193,7 @@ public class SR implements ActionListener {
 				switch(choice)
 				{
                     case 1:   searchVehicle(); break;
-                    case 2:   makeReservation(); break;
+                    case 2:   makeReservation(false); break;
                     case 3:   rentVehicle(); break;
                     case 4:   returnVehicle(); break;
                     case 5:   totalRental(); break;
@@ -233,7 +233,7 @@ public class SR implements ActionListener {
 
     }
     
-    private void makeReservation() {
+    private void makeReservation(boolean fromRent) {
         String      vt ="";
         String      fromDay;
         String      fromTime;
@@ -353,21 +353,25 @@ public class SR implements ActionListener {
                     addNewUser(dlicence);
                 }
 
-                rs = stmt.executeQuery("SELECT MAX(confNo) AS conf FROM reservation");
-                while(rs.next()) {
-                    confNo = rs.getInt("conf") + 1;
+                if(fromRent) {
+                    confNo = NULL;
+                } else {
+                    rs = stmt.executeQuery("SELECT MAX(confNo) AS conf FROM reservation");
+                    while(rs.next()) {
+                        confNo = rs.getInt("conf") + 1;
+                    }
+    
+                    System.out.print("Reservation complete:\n");
+                    System.out.printf("Vehicle: %s\n", vt);
+                    System.out.printf("From: \t %s\n", fromDate);
+                    System.out.printf("To: \t %s\n", untilDate);
+                    System.out.printf("Confirmation Number: \t %d \n", confNo);
+    
+                    System.out.println(" ");
+    
+                    stmt.executeUpdate("INSERT into reservation values (" + confNo + ", '" + vt + "', " + dlicence + 
+                        ", TO_DATE('" + fromDate + "', 'mm/dd/yyyy hh24:mi'), TO_DATE('" + untilDate + "', 'mm/dd/yyyy hh24:mi'))");
                 }
-
-                System.out.print("Reservation complete:\n");
-                System.out.printf("Vehicle: %s\n", vt);
-                System.out.printf("From: \t %s\n", fromDate);
-                System.out.printf("To: \t %s\n", untilDate);
-                System.out.printf("Confirmation Number: \t %d \n", confNo);
-
-                System.out.println(" ");
-
-                stmt.executeUpdate("INSERT into reservation values (" + confNo + ", '" + vt + "', " + dlicence + 
-                    ", TO_DATE('" + fromDate + "', 'mm/dd/yyyy hh24:mi'), TO_DATE('" + untilDate + "', 'mm/dd/yyyy hh24:mi'))");
             }
 
             // close the statement; 
@@ -469,7 +473,7 @@ public class SR implements ActionListener {
                     confNo = Integer.parseInt(in.readLine());
                     System.out.println(" ");
                     if (confNo == -1) {
-                        makeReservation();
+                        makeReservation(true);
                     } else {
                         // find reservation number and correlated data
                         reservation = stmt.executeQuery("SELECT * FROM reservation WHERE confNo =" + confNo);
