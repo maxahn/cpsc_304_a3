@@ -10,6 +10,8 @@ import javax.swing.*;
 import java.awt.*;
 import java.awt.event.*;
 
+import java.util.Date;
+
 public class SR implements ActionListener {
     // command line reader 
     private BufferedReader in = new BufferedReader(new InputStreamReader(System.in));
@@ -240,7 +242,7 @@ public class SR implements ActionListener {
         int         dlicence;
         int         confNo = 0;
         int         choice;
-        int         location;
+        int         location = 0;
         String      fromDate;
         String      untilDate;
         boolean     available;      //to check for vehicle availability, not used now
@@ -275,10 +277,13 @@ public class SR implements ActionListener {
             
             System.out.println(" ");
 
-            switch(choice) {
-                case 1: location = 1; break;
-                case 2: location = 2; break;
-                case 3: location = 3; break;
+            while(location == 0) {
+                switch(choice) {
+                    case 1: location = 1; break;
+                    case 2: location = 2; break;
+                    case 3: location = 3; break;
+                    default: location = 0; break;
+                }
             }
 
             System.out.print("From which day?\n");
@@ -348,9 +353,9 @@ public class SR implements ActionListener {
                     addNewUser(dlicence);
                 }
 
-                rs = stmt.executeQuery("SELECT confNo FROM reservation");
+                rs = stmt.executeQuery("SELECT MAX(confNo) AS conf FROM reservation");
                 while(rs.next()) {
-                    confNo = rs.getInt("confNo") + 1;
+                    confNo = rs.getInt("conf") + 1;
                 }
 
                 System.out.print("Reservation complete:\n");
@@ -551,19 +556,656 @@ public class SR implements ActionListener {
     }
 
     private void totalRental() {
+        String      vlicence;
+        int         vid;
+        String      make;
+        String      model;
+        int         year;
+        String      color;
+        int         odometer;
+        String      status;
+        String      vtname;
+        int         location;
+        String      city;
+        int         number;
+        Statement   stmt;
+        ResultSet   rs;
+        int         numCols;
+        ResultSetMetaData rsmd;
+	   
+		try {
+			stmt = con.createStatement();
 
+			rs = stmt.executeQuery(
+            "SELECT v.vlicence, v.vid, v.make, v.model, v.year, v.color, v.odometer, v.status, v.vtname, v.location, v.city " +
+            "FROM vehicle v, rent r " +
+            "WHERE v.vlicence = r.vlicence AND TO_CHAR(r.fromDate, 'YYYY-MM-DD') LIKE TO_CHAR(CURRENT_DATE, 'YYYY-MM-DD') " +
+            "ORDER BY v.location, v.vtname");
+
+			// get info on ResultSet
+			rsmd = rs.getMetaData();
+
+			// get number of columns
+			numCols = rsmd.getColumnCount();
+
+            System.out.println(" ");
+            System.out.println("Vehicles rented out today:");
+			
+			// display column names;
+			for (int i = 0; i < numCols; i++) {
+				// get column name and print it
+
+				System.out.printf("%-15s", rsmd.getColumnName(i+1));    
+			}
+
+			System.out.println(" ");
+
+			while(rs.next()) {
+				// for display purposes get everything from Oracle 
+				// as a string
+
+				// simplified output formatting; truncation may occur
+
+				vlicence = rs.getString("vlicence");
+				System.out.printf("%-15s", vlicence);
+
+                vid = rs.getInt("vid");
+				System.out.printf("%-15s", vid);
+                
+                make = rs.getString("make");
+                System.out.printf("%-15s", make);
+
+                model = rs.getString("model");
+                System.out.printf("%-15s", model);
+                
+                year = rs.getInt("year");
+                System.out.printf("%-15s", year);
+                
+                color = rs.getString("color");
+                System.out.printf("%-15s", color);
+
+                odometer = rs.getInt("odometer");
+                System.out.printf("%-15s", odometer);
+                
+                status = rs.getString("status");
+                System.out.printf("%-15s", status);
+                
+                vtname = rs.getString("vtname");
+                System.out.printf("%-15s", vtname);
+
+                location = rs.getInt("location");
+                System.out.printf("%-15s", location);
+
+                city = rs.getString("city");
+                System.out.printf("%-15s\n", city);
+            }
+            
+            rs = stmt.executeQuery(
+            "SELECT v.location, v.vtname, COUNT(v.vid) AS \"NUMBER\" " +
+            "FROM vehicle v, rent r " +
+            "WHERE v.vlicence = r.vlicence AND TO_CHAR(r.fromDate, 'YYYY-MM-DD') LIKE TO_CHAR(CURRENT_DATE, 'YYYY-MM-DD') " +
+            "GROUP BY v.location, v.vtname " +
+            "ORDER BY v.location, v.vtname");
+
+			// get info on ResultSet
+			rsmd = rs.getMetaData();
+
+			// get number of columns
+			numCols = rsmd.getColumnCount();
+
+			System.out.println(" ");
+            System.out.println("Vehicle types rented per branch:");
+			
+			// display column names;
+			for (int i = 0; i < numCols; i++) {
+				// get column name and print it
+
+				System.out.printf("%-15s", rsmd.getColumnName(i+1));    
+			}
+
+            System.out.println(" ");
+            
+            while(rs.next()) {
+				// for display purposes get everything from Oracle 
+				// as a string
+
+				// simplified output formatting; truncation may occur
+
+				location = rs.getInt("location");
+                System.out.printf("%-15s", location);
+
+                vtname = rs.getString("vtname");
+                System.out.printf("%-15s", vtname);
+
+                number = rs.getInt("number");
+                System.out.printf("%-15s\n", number);
+            }
+
+            rs = stmt.executeQuery(
+            "SELECT COUNT(*) AS \"NUMBER\" " +
+            "FROM rent r " +
+            "WHERE TO_CHAR(r.fromDate, 'YYYY-MM-DD') LIKE TO_CHAR(CURRENT_DATE, 'YYYY-MM-DD')");
+
+			System.out.println(" ");
+            System.out.println("Total number of vehicle rented today:");
+
+            while(rs.next()) {
+                number = rs.getInt("number");
+                System.out.printf("%-15s\n", number);
+            }
+	
+		// close the statement; 
+		// the ResultSet will also be closed
+		stmt.close();
+		}
+		catch (SQLException ex) {
+			System.out.println("Message: " + ex.getMessage());
+		}	
     }
 
     private void branchRental() {
+        String      vlicence;
+        int         vid;
+        String      make;
+        String      model;
+        int         year;
+        String      color;
+        int         odometer;
+        String      status;
+        String      vtname;
+        int         location;
+        String      city;
+        int         number;
+        int         branch = 0;
+        int         choice;
+        Statement   stmt;
+        ResultSet   rs;
+        int         numCols;
+        ResultSetMetaData rsmd;
+	   
+		try {
+            stmt = con.createStatement();
+            
+            System.out.print("Which branch?\n");
+            System.out.print("1. Vancouver \t 2. Richmond \t 3. Burnaby \n");
+            choice = Integer.parseInt(in.readLine());
+            
+            System.out.println(" ");
 
+            while(branch == 0) {
+                switch(choice) {
+                    case 1: branch = 1; break;
+                    case 2: branch = 2; break;
+                    case 3: branch = 3; break;
+                    default: branch = 0; break;
+                }
+            }
+
+			rs = stmt.executeQuery(
+            "SELECT v.vlicence, v.vid, v.make, v.model, v.year, v.color, v.odometer, v.status, v.vtname, v.location, v.city " +
+            "FROM vehicle v, rent r " +
+            "WHERE v.vlicence = r.vlicence AND TO_CHAR(r.fromDate, 'YYYY-MM-DD') LIKE TO_CHAR(CURRENT_DATE, 'YYYY-MM-DD') AND v.location = " + branch + " " +
+            "ORDER BY v.vtname");
+
+			// get info on ResultSet
+			rsmd = rs.getMetaData();
+
+			// get number of columns
+			numCols = rsmd.getColumnCount();
+
+            System.out.println(" ");
+            System.out.println("Vehicles rented out today:");
+			
+			// display column names;
+			for (int i = 0; i < numCols; i++) {
+				// get column name and print it
+
+				System.out.printf("%-15s", rsmd.getColumnName(i+1));    
+			}
+
+			System.out.println(" ");
+
+			while(rs.next()) {
+				// for display purposes get everything from Oracle 
+				// as a string
+
+				// simplified output formatting; truncation may occur
+
+				vlicence = rs.getString("vlicence");
+				System.out.printf("%-15s", vlicence);
+
+                vid = rs.getInt("vid");
+				System.out.printf("%-15s", vid);
+                
+                make = rs.getString("make");
+                System.out.printf("%-15s", make);
+
+                model = rs.getString("model");
+                System.out.printf("%-15s", model);
+                
+                year = rs.getInt("year");
+                System.out.printf("%-15s", year);
+                
+                color = rs.getString("color");
+                System.out.printf("%-15s", color);
+
+                odometer = rs.getInt("odometer");
+                System.out.printf("%-15s", odometer);
+                
+                status = rs.getString("status");
+                System.out.printf("%-15s", status);
+                
+                vtname = rs.getString("vtname");
+                System.out.printf("%-15s", vtname);
+
+                location = rs.getInt("location");
+                System.out.printf("%-15s", location);
+
+                city = rs.getString("city");
+                System.out.printf("%-15s\n", city);
+            }
+            
+            rs = stmt.executeQuery(
+            "SELECT v.vtname, COUNT(v.vid) AS \"NUMBER\" " +
+            "FROM vehicle v, rent r " +
+            "WHERE v.vlicence = r.vlicence AND TO_CHAR(r.fromDate, 'YYYY-MM-DD') LIKE TO_CHAR(CURRENT_DATE, 'YYYY-MM-DD') AND v.location = " + branch + " " +
+            "GROUP BY v.vtname " +
+            "ORDER BY v.vtname");
+
+			// get info on ResultSet
+			rsmd = rs.getMetaData();
+
+			// get number of columns
+			numCols = rsmd.getColumnCount();
+
+			System.out.println(" ");
+            System.out.println("Vehicle types rented:");
+			
+			// display column names;
+			for (int i = 0; i < numCols; i++) {
+				// get column name and print it
+
+				System.out.printf("%-15s", rsmd.getColumnName(i+1));    
+			}
+
+            System.out.println(" ");
+            
+            while(rs.next()) {
+				// for display purposes get everything from Oracle 
+				// as a string
+
+				// simplified output formatting; truncation may occur
+
+                vtname = rs.getString("vtname");
+                System.out.printf("%-15s", vtname);
+
+                number = rs.getInt("number");
+                System.out.printf("%-15s\n", number);
+            }
+
+            rs = stmt.executeQuery(
+            "SELECT COUNT(*) AS \"NUMBER\" " +
+            "FROM vehicle v, rent r " +
+            "WHERE v.vlicence = r.vlicence AND TO_CHAR(r.fromDate, 'YYYY-MM-DD') LIKE TO_CHAR(CURRENT_DATE, 'YYYY-MM-DD') AND v.location = " + branch);
+
+			System.out.println(" ");
+            System.out.println("Total number of vehicle rented todays:");
+
+            while(rs.next()) {
+                number = rs.getInt("number");
+                System.out.printf("%-15s\n", number);
+            }
+	
+		// close the statement; 
+		// the ResultSet will also be closed
+		stmt.close();
+		} catch (IOException e) {
+			System.out.println("IOException!");
+
+			try {
+				con.close();
+				System.exit(-1);
+			} catch (SQLException ex) {
+				System.out.println("Message: " + ex.getMessage());
+            }
+        } catch (SQLException ex) {
+			System.out.println("Message: " + ex.getMessage());
+		}	
     }
 
     private void totalReturn() {
+        String      vlicence;
+        int         vid;
+        String      make;
+        String      model;
+        int         year;
+        String      color;
+        int         odometer;
+        String      status;
+        String      vtname;
+        int         location;
+        String      city;
+        int         number;
+        double      revenue = 0.0;
+        Statement   stmt;
+        ResultSet   rs;
+        int         numCols;
+        ResultSetMetaData rsmd;
+	   
+		try {
+            stmt = con.createStatement();
+            
+			rs = stmt.executeQuery(
+            "SELECT v.vlicence, v.vid, v.make, v.model, v.year, v.color, v.odometer, v.status, v.vtname, v.location, v.city " +
+            "FROM vehicle v, rent r, return t " +
+            "WHERE v.vlicence = r.vlicence AND r.rid = t.rid AND TO_CHAR(t.return_date, 'YYYY-MM-DD') LIKE TO_CHAR(CURRENT_DATE, 'YYYY-MM-DD') " +
+            "ORDER BY v.location, v.vtname");
 
+			// get info on ResultSet
+			rsmd = rs.getMetaData();
+
+			// get number of columns
+			numCols = rsmd.getColumnCount();
+
+            System.out.println(" ");
+            System.out.println("Vehicles rented out today:");
+			
+			// display column names;
+			for (int i = 0; i < numCols; i++) {
+				// get column name and print it
+
+				System.out.printf("%-15s", rsmd.getColumnName(i+1));    
+			}
+
+			System.out.println(" ");
+
+			while(rs.next()) {
+				// for display purposes get everything from Oracle 
+				// as a string
+
+				// simplified output formatting; truncation may occur
+
+				vlicence = rs.getString("vlicence");
+				System.out.printf("%-15s", vlicence);
+
+                vid = rs.getInt("vid");
+				System.out.printf("%-15s", vid);
+                
+                make = rs.getString("make");
+                System.out.printf("%-15s", make);
+
+                model = rs.getString("model");
+                System.out.printf("%-15s", model);
+                
+                year = rs.getInt("year");
+                System.out.printf("%-15s", year);
+                
+                color = rs.getString("color");
+                System.out.printf("%-15s", color);
+
+                odometer = rs.getInt("odometer");
+                System.out.printf("%-15s", odometer);
+                
+                status = rs.getString("status");
+                System.out.printf("%-15s", status);
+                
+                vtname = rs.getString("vtname");
+                System.out.printf("%-15s", vtname);
+
+                location = rs.getInt("location");
+                System.out.printf("%-15s", location);
+
+                city = rs.getString("city");
+                System.out.printf("%-15s\n", city);
+            }
+            
+            rs = stmt.executeQuery(
+            "SELECT v.location, v.vtname, COUNT(v.vid) AS \"NUMBER\", SUM(t.value) AS \"REVENUE\" " +
+            "FROM vehicle v, rent r, return t " +
+            "WHERE v.vlicence = r.vlicence AND r.rid = t.rid AND TO_CHAR(r.fromDate, 'YYYY-MM-DD') LIKE TO_CHAR(CURRENT_DATE, 'YYYY-MM-DD') " +
+            "GROUP BY v.location, v.vtname " +
+            "ORDER BY v.location, v.vtname");
+
+			// get info on ResultSet
+			rsmd = rs.getMetaData();
+
+			// get number of columns
+			numCols = rsmd.getColumnCount();
+
+			System.out.println(" ");
+            System.out.println("Vehicle types rented per branch:");
+			
+			// display column names;
+			for (int i = 0; i < numCols; i++) {
+				// get column name and print it
+
+				System.out.printf("%-15s", rsmd.getColumnName(i+1));    
+			}
+
+            System.out.println(" ");
+            
+            while(rs.next()) {
+				// for display purposes get everything from Oracle 
+				// as a string
+
+				// simplified output formatting; truncation may occur
+
+				location = rs.getInt("location");
+                System.out.printf("%-15s", location);
+
+                vtname = rs.getString("vtname");
+                System.out.printf("%-15s", vtname);
+
+                number = rs.getInt("number");
+                System.out.printf("%-15s", number);
+
+                revenue = rs.getDouble("revenue");
+                System.out.printf("%-15s\n", revenue);
+            }
+
+            rs = stmt.executeQuery(
+            "SELECT COUNT(*) AS \"NUMBER\", SUM(value) AS \"REVENUE\"" +
+            "FROM return " +
+            "WHERE TO_CHAR(return_date, 'YYYY-MM-DD') LIKE TO_CHAR(CURRENT_DATE, 'YYYY-MM-DD')");
+
+			System.out.println(" ");
+            System.out.println("Total number of vehicle rented today and total revenue:");
+
+            while(rs.next()) {
+                number = rs.getInt("number");
+                System.out.printf("%-15s\t", number);
+
+                revenue = rs.getDouble("revenue");
+                System.out.printf("$%-15s\n", revenue);
+            }
+	
+		// close the statement; 
+		// the ResultSet will also be closed
+		stmt.close();
+		}
+		catch (SQLException ex) {
+			System.out.println("Message: " + ex.getMessage());
+		}
     }
 
     private void branchReturn() {
+        String      vlicence;
+        int         vid;
+        String      make;
+        String      model;
+        int         year;
+        String      color;
+        int         odometer;
+        String      status;
+        String      vtname;
+        int         location;
+        String      city;
+        int         number;
+        int         branch = 0;
+        int         choice;
+        double      revenue;
+        Statement   stmt;
+        ResultSet   rs;
+        int         numCols;
+        ResultSetMetaData rsmd;
+	   
+		try {
+            stmt = con.createStatement();
+            
+            System.out.print("Which branch?\n");
+            System.out.print("1. Vancouver \t 2. Richmond \t 3. Burnaby \n");
+            choice = Integer.parseInt(in.readLine());
+            
+            System.out.println(" ");
 
+            while(branch == 0) {
+                switch(choice) {
+                    case 1: branch = 1; break;
+                    case 2: branch = 2; break;
+                    case 3: branch = 3; break;
+                    default: branch = 0; break;
+                }
+            }
+
+			rs = stmt.executeQuery(
+            "SELECT v.vlicence, v.vid, v.make, v.model, v.year, v.color, v.odometer, v.status, v.vtname, v.location, v.city " +
+            "FROM vehicle v, rent r, return t " +
+            "WHERE v.vlicence = r.vlicence AND r.rid = t.rid AND TO_CHAR(t.return_date, 'YYYY-MM-DD') LIKE TO_CHAR(CURRENT_DATE, 'YYYY-MM-DD') AND v.location = " + branch + " " +
+            "ORDER BY v.location, v.vtname");
+
+			// get info on ResultSet
+			rsmd = rs.getMetaData();
+
+			// get number of columns
+			numCols = rsmd.getColumnCount();
+
+            System.out.println(" ");
+            System.out.println("Vehicles rented out today:");
+			
+			// display column names;
+			for (int i = 0; i < numCols; i++) {
+				// get column name and print it
+
+				System.out.printf("%-15s", rsmd.getColumnName(i+1));    
+			}
+
+			System.out.println(" ");
+
+			while(rs.next()) {
+				// for display purposes get everything from Oracle 
+				// as a string
+
+				// simplified output formatting; truncation may occur
+
+				vlicence = rs.getString("vlicence");
+				System.out.printf("%-15s", vlicence);
+
+                vid = rs.getInt("vid");
+				System.out.printf("%-15s", vid);
+                
+                make = rs.getString("make");
+                System.out.printf("%-15s", make);
+
+                model = rs.getString("model");
+                System.out.printf("%-15s", model);
+                
+                year = rs.getInt("year");
+                System.out.printf("%-15s", year);
+                
+                color = rs.getString("color");
+                System.out.printf("%-15s", color);
+
+                odometer = rs.getInt("odometer");
+                System.out.printf("%-15s", odometer);
+                
+                status = rs.getString("status");
+                System.out.printf("%-15s", status);
+                
+                vtname = rs.getString("vtname");
+                System.out.printf("%-15s", vtname);
+
+                location = rs.getInt("location");
+                System.out.printf("%-15s", location);
+
+                city = rs.getString("city");
+                System.out.printf("%-15s\n", city);
+            }
+            
+            rs = stmt.executeQuery(
+            "SELECT v.location, v.vtname, COUNT(v.vid) AS \"NUMBER\", SUM(t.value) AS \"REVENUE\" " +
+            "FROM vehicle v, rent r, return t " +
+            "WHERE v.vlicence = r.vlicence AND r.rid = t.rid AND TO_CHAR(r.fromDate, 'YYYY-MM-DD') LIKE TO_CHAR(CURRENT_DATE, 'YYYY-MM-DD') AND v.location = " + branch + " " +
+            "GROUP BY v.location, v.vtname " +
+            "ORDER BY v.location, v.vtname");
+
+			// get info on ResultSet
+			rsmd = rs.getMetaData();
+
+			// get number of columns
+			numCols = rsmd.getColumnCount();
+
+			System.out.println(" ");
+            System.out.println("Vehicle types rented per branch:");
+			
+			// display column names;
+			for (int i = 0; i < numCols; i++) {
+				// get column name and print it
+
+				System.out.printf("%-15s", rsmd.getColumnName(i+1));    
+			}
+
+            System.out.println(" ");
+            
+            while(rs.next()) {
+				// for display purposes get everything from Oracle 
+				// as a string
+
+				// simplified output formatting; truncation may occur
+
+				location = rs.getInt("location");
+                System.out.printf("%-15s", location);
+
+                vtname = rs.getString("vtname");
+                System.out.printf("%-15s", vtname);
+
+                number = rs.getInt("number");
+                System.out.printf("%-15s", number);
+
+                revenue = rs.getDouble("revenue");
+                System.out.printf("%-15s\n", revenue);
+            }
+
+            rs = stmt.executeQuery(
+            "SELECT COUNT(*) AS \"NUMBER\", SUM(t.value) AS \"REVENUE\"" +
+            "FROM vehicle v, rent r, return t " +
+            "WHERE v.vlicence = r.vlicence AND r.rid = t.rid AND TO_CHAR(t.return_date, 'YYYY-MM-DD') LIKE TO_CHAR(CURRENT_DATE, 'YYYY-MM-DD') AND v.location = " + branch);
+
+			System.out.println(" ");
+            System.out.println("Total number of vehicle rented today and total revenue:");
+
+            while(rs.next()) {
+                number = rs.getInt("number");
+                System.out.printf("%-15s\t", number);
+
+                revenue = rs.getDouble("revenue");
+                System.out.printf("$%-15s\n", revenue);
+            }
+	
+		// close the statement; 
+		// the ResultSet will also be closed
+		stmt.close();
+		} catch (IOException e) {
+			System.out.println("IOException!");
+
+			try {
+				con.close();
+				System.exit(-1);
+			} catch (SQLException ex) {
+				System.out.println("Message: " + ex.getMessage());
+            }
+        } catch (SQLException ex) {
+			System.out.println("Message: " + ex.getMessage());
+		}	
     }
 
     private void editTable() {
@@ -722,7 +1364,7 @@ public class SR implements ActionListener {
 			// display column names;
 			for (int i = 0; i < numCols; i++) {
                 // get column name and print it
-                if(rsmd.getColumnName(i+1).equals("FROMDATE") || rsmd.getColumnName(i+1).equals("TODATE")) {
+                if(rsmd.getColumnName(i+1).equals("FROMDATE") || rsmd.getColumnName(i+1).equals("TODATE") || rsmd.getColumnName(i+1).equals("CARDNO")) {
                     System.out.printf("%-25s", rsmd.getColumnName(i+1));
                 } else {
                     System.out.printf("%-15s", rsmd.getColumnName(i+1));
@@ -750,7 +1392,7 @@ public class SR implements ActionListener {
                 System.out.printf("%-25s", fromDate);
                 
                 untilDate = rs.getTimestamp("toDate");
-                System.out.printf("%-25s\n", untilDate);
+                System.out.printf("%-25s", untilDate);
                 
                 odometer = rs.getInt("odometer");
                 System.out.printf("%-15s", odometer);
@@ -759,13 +1401,13 @@ public class SR implements ActionListener {
                 System.out.printf("%-15s", cardName);
 
                 cardNo = rs.getString("cardNo");
-                System.out.printf("%-15s", cardNo);
+                System.out.printf("%-25s", cardNo);
 
                 expDate = rs.getDate("expDate");
-                System.out.prinf("%-15s", expDate);
+                System.out.printf("%-15s", expDate);
 
                 confNo = rs.getInt("confNo");
-                System.out.prinf("%-15s", confNo);
+                System.out.printf("%-15s\n", confNo);
 			}
 	
 		// close the statement; 
@@ -789,7 +1431,7 @@ public class SR implements ActionListener {
 		try {
 			stmt = con.createStatement();
 
-			rs = stmt.executeQuery("SELECT * FROM reservation");
+			rs = stmt.executeQuery("SELECT * FROM return");
 
 			// get info on ResultSet
 			ResultSetMetaData rsmd = rs.getMetaData();
@@ -830,7 +1472,7 @@ public class SR implements ActionListener {
                 System.out.printf("%-15s", fullTank);
 
                 value = rs.getFloat("value");
-                System.out.printf("%-15s", value);
+                System.out.printf("%-15s\n", value);
 			}
 	
 		// close the statement; 
@@ -889,7 +1531,7 @@ public class SR implements ActionListener {
                 System.out.printf("%-15s", vlicence);
                 
                 vid = rs.getInt("vid");
-                System.out.printf("%-25s", vid);
+                System.out.printf("%-15s", vid);
                 
                 make = rs.getString("make");
                 System.out.printf("%-15s", make);
@@ -916,7 +1558,7 @@ public class SR implements ActionListener {
                 System.out.printf("%-15s", location);
                 
                 city = rs.getString("city");
-                System.out.printf("%-15s", city);
+                System.out.printf("%-15s\n", city);
 			}
 	
 		// close the statement; 
@@ -931,13 +1573,13 @@ public class SR implements ActionListener {
     private void showVehicleType() {
         String      vtname;
         String      feature;
-        int         wrate;
-        int         drate;
-        int         hrate;
-        int         wirate;
-        int         dirate;
-        int         hirate;
-        int         krate;
+        float       wrate;
+        float       drate;
+        float       hrate;
+        float       wirate;
+        float       dirate;
+        float       hirate;
+        float       krate;
 		Statement   stmt;
 		ResultSet   rs;
 	   
@@ -971,28 +1613,28 @@ public class SR implements ActionListener {
                 System.out.printf("%-15s", vtname);
                 
                 feature = rs.getString("feature");
-                System.out.printf("%-25s", feature);
+                System.out.printf("%-15s", feature);
                 
-                wrate = rs.getInt("wrate");
+                wrate = rs.getFloat("wrate");
                 System.out.printf("%-15s", wrate);
                 
-                drate = rs.getInt("drate");
+                drate = rs.getFloat("drate");
                 System.out.printf("%-15s", drate);
 
-                hrate = rs.getInt("hrate");
+                hrate = rs.getFloat("hrate");
                 System.out.printf("%-15s", hrate);
 
-                wirate = rs.getInt("wirate");
+                wirate = rs.getFloat("wirate");
                 System.out.printf("%-15s", wirate);
                 
-                dirate = rs.getInt("dirate");
+                dirate = rs.getFloat("dirate");
                 System.out.printf("%-15s", dirate);
 
-                hirate = rs.getInt("hirate");
+                hirate = rs.getFloat("hirate");
                 System.out.printf("%-15s", hirate);
 
-                krate = rs.getInt("krate");
-                System.out.printf("%-15s", krate);
+                krate = rs.getFloat("krate");
+                System.out.printf("%-15s\n", krate);
 			}
 	
 		// close the statement; 
