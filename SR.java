@@ -230,10 +230,20 @@ public class SR implements ActionListener {
     }
 
     private void searchVehicle() {
-        String      vt ="";
-        String      location ="";
-        String      choice;
+        String      vt = null;
+        String      location = null;
+        Integer      choice;
         String      sqlQuery = "";
+
+        String      fromDay;
+        String      untilDay;
+        String      fromTime;
+        String      untilTime;
+        String      fromDate;
+        String      untilDate;
+
+        String whereConditions = "";
+
         boolean     valid = false;
         Timestamp   start = null;
         Timestamp   end = null;
@@ -241,94 +251,135 @@ public class SR implements ActionListener {
 
 
         try {
-        System.out.print("Enter vehicle type:\n");
+            Statement stmt = con.createStatement();
 
-        //TODO: stole this from makeReservation, refactor later 
-        choice = new String(in.readLine()).trim();
-        //TODO: check if user gave a valid vehicle type
-        //  is there a table of just vehicle types? 
+            System.out.print("Choose one of the follow type of vehicle:\n");
+            System.out.print("1. Economy \t 2. Compact \t 3. Mid-size \t 4. Standard \t 5. Full-size \t 6. SUV \t 7. Truck \n 8. Any\n");
 
-        vt = choice;
+            //TODO: stole this from makeReservation, refactor later 
+            choice = new Integer(in.readLine().trim());
+            //TODO: check if user gave a valid vehicle type
+            //  is there a table of just vehicle types? 
+            switch(choice) {
+                case 1: vt = "Economy"; break;
+                case 2: vt = "Compact"; break;
+                case 3: vt = "Mid-size"; break;
+                case 4: vt = "Standard"; break;
+                case 5: vt = "Full-size"; break;
+                case 6: vt = "SUV"; break;
+                case 7: vt = "Truck"; break;
+            }
 
-        System.out.print("Enter location:");
+            System.out.print("Enter location:");
+            System.out.print("1. Vancouver \t 2. Richmond \t 3. Burnaby \n 4. Any\n");
 
-        choice = new String(in.readLine()).trim();
-        
-        //TODO: check if user gave a valid location
-        location = choice; 
+            choice = new Integer(in.readLine().trim());
 
-        System.out.println(" ");
+            switch(choice) {
+                case 1: location = "Vancouver"; break;
+                case 2: location = "Richmond"; break;
+                case 3: location = "Burnaby"; break;
+            }
+            
+            System.out.print("From which day?\n");
+            System.out.print("In format of mm/dd/yyyy, ie. 01/01/2020\n");
+            fromDay = in.readLine();
 
-        System.out.print("Enter availability start timestamp (format: 2001-7-27 09:00:30.75):");
+            System.out.println(" ");
 
-        choice = new String(in.readLine());
-        start = parseResponseIntoTimestamp(choice);
+            System.out.print("From what time?\n");
+            System.out.print("In format of hh[24]:mm, ie. 13:30\n");
+            fromTime = in.readLine();
 
-        System.out.print("Enter availability end timestamp (format: 2001-7-27 09:00:30.75):");
+            System.out.println(" ");
 
-        choice = new String(in.readLine());
-        end = parseResponseIntoTimestamp(choice);
+            System.out.print("To which day?\n");
+            System.out.print("In format of mm/dd/yyyy, ie. 01/01/2020\n");
+            untilDay = in.readLine();
 
-        System.out.print("Selection options: VehicleType = " + vt + 
-            ", location = " + location + 
-            " start ts: " + start.toString() + 
-            "end ts: " + end.toString()); 
+            System.out.println(" ");
 
-        Statement stmt = con.createStatement();
-        //if either strartStr or endStr is null, both are invalid
-        String startStr = tsToString(start);
-        String endStr = tsToString(end);
-        
-        String whereConditions = "";
-        if (vt != null && vt.length() > 0) {
-            //TODO also must check vtname is valid
-            whereConditions += "WHERE vehicle.vtname = " + vt;
-        }
+            System.out.print("To what time?\n");
+            System.out.print("In format of hh[24]:mm, ie. 13:30\n");
+            untilTime = in.readLine();
 
-        if (location != null && location.length() > 0) {
+
+            System.out.println(" ");
+
+            //what is fromDay = null
+            fromDate = fromDay + " " + fromTime;
+            untilDate = untilDay + " " + untilTime;
+
+            System.out.printf("Vehicle: %s\n", (vt == null) ? "N/A" : vt);
+            System.out.printf("Location: %s\n", (location == null) ? "N/A" : location);
+            System.out.printf("From: \t %s\n", (fromDate == null || fromDate.length() == 0) ? "N/A" : fromDate);
+            System.out.printf("To: \t %s\n", (untilDate == null || untilDate.length() == 0) ? "N/A" : untilDate);
+
+            System.out.println(" ");
+            //TO_DATE('" + fromDate + "', 'mm/dd/yyyy hh24:mi'), TO_DATE('" + untilDate + "', 'mm/dd/yyyy hh24:mi'))");
+
+            if (vt != null && vt.length() > 0) {
+                //TODO also must check vtname is valid
+                whereConditions += "WHERE vehicle.vtname = " + vt;
+            }
+
             if (location != null && location.length() > 0) {
-                whereConditions += " AND ";
-            } else {
-                whereConditions = "WHERE ";
+                if (vt != null && location.length() > 0) {
+                    whereConditions += " AND ";
+                } else {
+                    whereConditions = "WHERE ";
+                }
+                whereConditions += "vehicle.location = " + location;
             }
-            whereConditions += "vehicle.location = " + location;
-        }
-
-        if (startStr != null && endStr != null) {
-            if ((vt != null && vt.length() > 0) || (location != null && location.length() > 0)) {
-                whereConditions += " AND ";
+            if (fromDate == null || untilDate == null) {
+               //print something? 
             } else {
-                whereConditions = "WHERE ";
+                if (fromDate.trim().length() > 0 && untilDate.trim().length() > 0) {
+                    if ((vt != null && vt.length() > 0) || (location != null && location.length() > 0)) {
+                        whereConditions += " AND ";
+                    } else {
+                        whereConditions = "WHERE ";
+                    }
+                //warning, this will most definitely not include rent.confNo when there's no reservation for the rent
+                whereConditions += "confNo NOT IN (" +
+                    "SELECT reservation.confNo FROM rent " + 
+                    "JOIN reservation ON rent.confNo = reservation.confNo " +
+                    "WHERE " + "TO_DATE(" + fromDate + ", 'mm/dd/yyyy hh24:mi')" +  
+                    " BETWEEN " + "rent.fromDate" + " AND "  + "rent.ToDate " + 
+                    "OR " + "TO_DATE(" + untilDate + ", 'mm/dd/yyyy hh24:mi')" + 
+                    " BETWEEN " + "rent.fromDate" + " AND "  + "rent.ToDate " + 
+                    "WHERE " + "TO_DATE(" + fromDate + ", 'mm/dd/yyyy hh24:mi')" + " BETWEEN " + 
+                    "reservation.fromDate" + " AND "  + "reservation.ToDate " + 
+                    "OR " + "TO_DATE(" + untilDate + ", 'mm/dd/yyyy hh24:mi')" + " BETWEEN " + 
+                    "reservation.fromDate" + " AND "  + "reservation.ToDate" + 
+                ")";
+                }
+
             }
-            //warning, this will most definitely not include rent.confNo when there's no reservation for the rent
-            whereConditions += "confNo NOT IN (" +
-                "SELECT reservation.confNo FROM rent " + 
-                "JOIN reservation ON rent.confNo = reservation.confNo " +
-                "WHERE " + startStr + " BETWEEN " + 
-                "rent.fromDate" + " AND "  + "rent.ToDate " + 
-                "OR " + endStr + " BETWEEN " + 
-                "rent.fromDate" + " AND "  + "rent.ToDate " + 
-                "WHERE " + startStr + " BETWEEN " + 
-                "reservation.fromDate" + " AND "  + "reservation.ToDate " + 
-                "OR " + endStr + " BETWEEN " + 
-                "reservation.fromDate" + " AND "  + "reservation.ToDate" + 
-            ")";
-        }
-        sqlQuery = "SELECT COUNT(*) AS total FROM reservation JOIN rent " + 
-                    "ON reservation.confNo = rent.confNo " + 
-                    "JOIN vehicle ON rent.vlicence = vehicle.vlicence " + whereConditions + ";";
 
-        System.out.println(sqlQuery);
+        //sqlQuery = "SELECT COUNT(*) AS total FROM reservation JOIN rent " + 
+        //            "ON reservation.confNo = rent.confNo " + 
+        //            "JOIN vehicle ON rent.vlicence = vehicle.vlicence " + whereConditions + ";";
+            sqlQuery = "SELECT vehicle.vlicence FROM reservation JOIN rent " + 
+                        "ON reservation.confNo = rent.confNo " + 
+                        "JOIN vehicle ON rent.vlicence = vehicle.vlicence " + whereConditions;
 
-        // todo: also make sure vehicles are for rent
-        rs = stmt.executeQuery(sqlQuery);
 
-        // get info on ResultSet
-        int count = rs.getInt("total");
-        
-        System.out.print("Number of available vehicles: " + count);
+            System.out.println("SQL QUERY: " + sqlQuery);
 
-        stmt.close();
+            // todo: also make sure vehicles are for rent
+            rs = stmt.executeQuery(sqlQuery);
+
+            // get info on ResultSet
+            //int count = rs.getInt("total");
+            
+            
+            //System.out.print("Number of available vehicles: " + count);
+            while (rs.next()) {
+                printVehicles(rs);
+            }
+
+            stmt.close();
         } catch (IOException e) {
             System.out.print("IOException caught\n");
 
@@ -1769,6 +1820,24 @@ public class SR implements ActionListener {
 		catch (SQLException ex) {
 			System.out.println("Message: " + ex.getMessage());
 		}	
+    }
+
+    private void printVehicles(ResultSet rs) {
+        try {
+            System.out.printf("%-15s", rs.getString("vlicence"));
+            System.out.printf("%-15s", rs.getInt("vid"));
+            System.out.printf("%-15s", rs.getString("make"));
+            System.out.printf("%-15s", rs.getString("model"));
+            System.out.printf("%-15s", rs.getInt("year"));
+            System.out.printf("%-15s", rs.getString("color"));
+            System.out.printf("%-15s", rs.getInt("odometer"));
+            System.out.printf("%-15s", rs.getString("status"));
+            System.out.printf("%-15s", rs.getString("vtname"));
+            System.out.printf("%-15s", rs.getInt("location"));
+            System.out.printf("%-15s\n", rs.getString("city"));
+        } catch (SQLException sE) {
+            System.out.println("caught sqlexception in printVehicles");
+        }
     }
 
     public static void main(String args[]) {
