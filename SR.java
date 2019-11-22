@@ -231,8 +231,8 @@ public class SR implements ActionListener {
 
     private void searchVehicle() {
         String      vt = null;
-        String      location = null;
-        Integer      choice;
+        int         location = 0; 
+        Integer     choice;
         String      sqlQuery = "";
 
         String      fromDay;
@@ -245,6 +245,10 @@ public class SR implements ActionListener {
         String whereConditions = "";
 
         boolean     valid = false;
+        boolean     vtSelected = true;
+        boolean     locSelected = true;
+        boolean     tsSelected = true;
+
         Timestamp   start = null;
         Timestamp   end = null;
         ResultSet   rs;
@@ -254,10 +258,11 @@ public class SR implements ActionListener {
             Statement stmt = con.createStatement();
 
             System.out.print("Choose one of the follow type of vehicle:\n");
-            System.out.print("1. Economy \t 2. Compact \t 3. Mid-size \t 4. Standard \t 5. Full-size \t 6. SUV \t 7. Truck \n 8. Any\n");
+            System.out.print("1. Economy \t 2. Compact \t 3. Mid-size \t 4. Standard \t 5. Full-size \t 6. SUV \t 7. Truck \t 8. Any\n");
 
-            //TODO: stole this from makeReservation, refactor later 
-            choice = new Integer(in.readLine().trim());
+
+            String choiceStr = in.readLine().trim();
+            choice = (choiceStr.trim().length() == 0) ? 8 : new Integer(choiceStr);
             //TODO: check if user gave a valid vehicle type
             //  is there a table of just vehicle types? 
             switch(choice) {
@@ -268,17 +273,20 @@ public class SR implements ActionListener {
                 case 5: vt = "Full-size"; break;
                 case 6: vt = "SUV"; break;
                 case 7: vt = "Truck"; break;
+                case 8: vtSelected = false; break;
             }
 
-            System.out.print("Enter location:");
-            System.out.print("1. Vancouver \t 2. Richmond \t 3. Burnaby \n 4. Any\n");
+            System.out.print("Choose one of the following locations:\n");
+            System.out.print("1. Vancouver \t 2. Richmond \t 3. Burnaby \t 4. Any\n");
 
-            choice = new Integer(in.readLine().trim());
+            choiceStr = in.readLine().trim();
+            choice = (choiceStr.trim().length() == 0) ? 0 : new Integer(choiceStr);
 
             switch(choice) {
-                case 1: location = "Vancouver"; break;
-                case 2: location = "Richmond"; break;
-                case 3: location = "Burnaby"; break;
+                case 1: location = 1; break;
+                case 2: location = 2; break;
+                case 3: location = 3; break;
+                default: locSelected = false; break;
             }
             
             System.out.print("From which day?\n");
@@ -303,6 +311,11 @@ public class SR implements ActionListener {
             System.out.print("In format of hh[24]:mm, ie. 13:30\n");
             untilTime = in.readLine();
 
+            // if any are blank, tsSelected is false
+            tsSelected =    fromDay.trim().length()  != 0 && 
+                            fromTime.trim().length()  != 0 && 
+                            untilDay.trim().length()  != 0 && 
+                            untilTime.trim().length() != 0;
 
             System.out.println(" ");
 
@@ -310,38 +323,28 @@ public class SR implements ActionListener {
             fromDate = fromDay + " " + fromTime;
             untilDate = untilDay + " " + untilTime;
 
-            System.out.printf("Vehicle: %s\n", (vt == null) ? "N/A" : vt);
-            System.out.printf("Location: %s\n", (location == null) ? "N/A" : location);
-            System.out.printf("From: \t %s\n", (fromDate == null || fromDate.length() == 0) ? "N/A" : fromDate);
-            System.out.printf("To: \t %s\n", (untilDate == null || untilDate.length() == 0) ? "N/A" : untilDate);
+            System.out.printf("Vehicle: %s\n",  (!vtSelected)  ? "N/A" : vt);
+            System.out.printf("Location: %s\n", (!locSelected) ? "N/A" : location);
+            System.out.printf("From: \t %s\n",  (!tsSelected)  ? "N/A" : fromDate);
+            System.out.printf("To: \t %s\n",    (!tsSelected)  ? "N/A" : untilDate);
 
             System.out.println(" ");
             //TO_DATE('" + fromDate + "', 'mm/dd/yyyy hh24:mi'), TO_DATE('" + untilDate + "', 'mm/dd/yyyy hh24:mi'))");
 
-            if (vt != null && vt.length() > 0) {
+            String conditions = "";
+
+            if (vtSelected) {
                 //TODO also must check vtname is valid
-                whereConditions += "WHERE vehicle.vtname = " + vt;
+                whereConditions += "WHERE vehicle.vtname = '" + vt + "'";
+            } 
+            if (!vtSelected && locSelected) {
+                whereConditions = "WHERE vehicle.location = '" + location + "'";
+            } else if (locSelected) {
+                whereConditions += " AND vehicle.location = '" + location + "'";
             }
 
-            if (location != null && location.length() > 0) {
-                if (vt != null && location.length() > 0) {
-                    whereConditions += " AND ";
-                } else {
-                    whereConditions = "WHERE ";
-                }
-                whereConditions += "vehicle.location = " + location;
-            }
-            if (fromDate == null || untilDate == null) {
-               //print something? 
-            } else {
-                if (fromDate.trim().length() > 0 && untilDate.trim().length() > 0) {
-                    if ((vt != null && vt.length() > 0) || (location != null && location.length() > 0)) {
-                        whereConditions += " AND ";
-                    } else {
-                        whereConditions = "WHERE ";
-                    }
-                //warning, this will most definitely not include rent.confNo when there's no reservation for the rent
-                whereConditions += "confNo NOT IN (" +
+            if (tsSelected) {
+                sqlQuery = "WITH res_rent AS (" + 
                     "SELECT reservation.confNo FROM rent " + 
                     "JOIN reservation ON rent.confNo = reservation.confNo " +
                     "WHERE " + "TO_DATE(" + fromDate + ", 'mm/dd/yyyy hh24:mi')" +  
@@ -352,18 +355,18 @@ public class SR implements ActionListener {
                     "reservation.fromDate" + " AND "  + "reservation.ToDate " + 
                     "OR " + "TO_DATE(" + untilDate + ", 'mm/dd/yyyy hh24:mi')" + " BETWEEN " + 
                     "reservation.fromDate" + " AND "  + "reservation.ToDate" + 
-                ")";
+                ") ";
+                if (vtSelected || locSelected) {
+                    whereConditions += "NOT (reservation.confNo IN res_rent OR rent.confNo IN res_rent)";
+                } else {
+                    whereConditions = " WHERE NOT (reservation.confNo IN res_rent OR rent.confNo IN res_rent)";
                 }
-
             }
 
-        //sqlQuery = "SELECT COUNT(*) AS total FROM reservation JOIN rent " + 
-        //            "ON reservation.confNo = rent.confNo " + 
-        //            "JOIN vehicle ON rent.vlicence = vehicle.vlicence " + whereConditions + ";";
-            sqlQuery = "SELECT vehicle.vlicence FROM reservation JOIN rent " + 
-                        "ON reservation.confNo = rent.confNo " + 
-                        "JOIN vehicle ON rent.vlicence = vehicle.vlicence " + whereConditions;
-
+            //sqlQuery = "SELECT COUNT(*) AS total FROM reservation JOIN rent " + 
+            //            "ON reservation.confNo = rent.confNo " + 
+            //            "JOIN vehicle ON rent.vlicence = vehicle.vlicence " + whereConditions + ";";
+            sqlQuery += "SELECT * FROM vehicle " + whereConditions;
 
             System.out.println("SQL QUERY: " + sqlQuery);
 
