@@ -908,7 +908,7 @@ public class SR implements ActionListener {
 
             while(rs.next()) {
                 number = rs.getInt("number");
-                System.out.printf("%-15s\t", number);
+                System.out.printf("%-15s vehicles\t", number);
 
                 revenue = rs.getDouble("revenue");
                 System.out.printf("$%-15s\n", revenue);
