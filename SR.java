@@ -28,6 +28,22 @@ public class SR implements ActionListener {
     private JPasswordField passwordField;
     private JFrame mainFrame;
 
+    // Economy \t 2. Compact \t 3. Mid-size \t 4. Standard \t 5. Full-size \t 6. SUV \t 7. Truck \n");
+    private static final int ECONOMY_HOURS = 20;
+    private static final int ECONOMY_DAYS = 100;
+    private static final int COMPACT_HOURS = 18;
+    private static final int COMPACT_DAYS = 90;
+    private static final int MIDSIZE_HOURS = 25;
+    private static final int MIDSIZE_DAYS = 125;
+    private static final int STANDARD_HOURS = 28;
+    private static final int STANDARD_DAYS = 140;
+    private static final int FULLSIZE_HOURS = 30;
+    private static final int FULLSIZE_DAYS = 150;
+    private static final int SUV_HOURS = 25;
+    private static final int SUV_DAYS = 125;
+    private static final int TRUCK_HOURS = 35;
+    private static final int TRUCK_DAYS = 165;
+
     public SR() {
         mainFrame = new JFrame("User Login");
   
@@ -451,7 +467,7 @@ public class SR implements ActionListener {
         int         odometer = 0;
         int         dlicence = 0;
         String      cardName = "";
-        Date        expDate = new Date();
+        String      expDate = "";
         String      cardNo = "";
         String      vt = "";
         String      vlicence = "";
@@ -499,11 +515,13 @@ public class SR implements ActionListener {
                         cardName = in.readLine();
 
                         System.out.println("Enter card number: ");
-                        cardName = in.readLine();
+                        cardNo = in.readLine();
 
-                        //TODO: take first 4 characters, all strictly numeric
-                        System.out.println("Enter card expiry date (MMYY): ");
-                        cardName = in.readLine();
+                        // TODO: take first 4 characters, all strictly numeric
+                        System.out.println("Enter card expiry date (MM/YY): ");
+                        expDate = in.readLine();
+
+                        System.out.println("");
 
                         // print receipt
                         System.out.println("Receipt: ");
@@ -551,41 +569,73 @@ public class SR implements ActionListener {
     private void returnVehicle() {
         int         rid;
         int         odometer;
+        int         seconds = 0;
+        int         hours = 0;
+        int         days = 0;
+        int         cost = 0;
         String      vlicence = "";
         String      fulltank = "";
+        String      vt = "";
         Statement   stmt;
         ResultSet   rent;
         ResultSet   vehicle;
+        Timestamp   start_date;
         Timestamp   return_date;
-        DateTimeFormatter dtf;
         try {
             stmt = con.createStatement();
             System.out.println("What is your rent ID?");
             rid = Integer.parseInt(in.readLine());
-            
-            // get vlicence, odometer
             rent = stmt.executeQuery("SELECT * FROM rent WHERE rid = " + rid);
+            // if rent entry is found
             if (rent.next()) {
                 vlicence = rent.getString("vlicence");
-            }
-            if (vlicence != "") {
-                // odometer?
-                System.out.println("Odometer?");
-                odometer = Integer.parseInt(in.readLine());
+                vehicle = stmt.executeQuery("SELECT * FROM vehicle WHERE vlicence = '" + vlicence +"'");
+                // if vehicle is found
+                if (vehicle.next()) {
+                    vt = vehicle.getString("vtname");
+                    System.out.println("Odometer?");
+                    odometer = Integer.parseInt(in.readLine());
 
-                // is tank full?
-                System.out.println("Is the tank full? T for full, F if it is not full.");
-                fulltank = in.readLine();
-                fulltank.toUpperCase();
-
-                // get current date time
-                // convert into string, then format
-                LocalDateTime now = LocalDateTime.now();
-
-                // update vehicle status back to available
-                // create new tuple in return
-                stmt.executeQuery("UPDATE vehicle SET status = 'available' WHERE vlicence = '" + vlicence + "'");
-                stmt.executeQuery("INSERT INTO return VALUES(" + rid + ", TO_TIMESTAMP('" + now +  "', 'YYYY-MM-DD HH24:MI:SS'), " + odometer + ", '" + fulltank + "', 123)"); 
+                    // is tank full?
+                    System.out.println("Is the tank full? T for full, F if it is not full.");
+                    fulltank = in.readLine();
+                    fulltank.toUpperCase();
+                    // for some reason "if (fulltank == "T" || fulltank == "F")" always resolves to false
+                    start_date = rent.getTimestamp("fromDate");
+                    return_date = new Timestamp(System.currentTimeMillis());
+                    seconds = (int)(return_date.getTime() - start_date.getTime()) % 1000;
+                    hours = seconds % 3600;
+                    days = hours % 24;
+                    switch (vt) {
+                        //  Economy \t 2. Compact \t 3. Mid-size \t 4. Standard \t 5. Full-size \t 6. SUV \t 7. Truck \n");
+                        case "Economy":
+                            cost = days * ECONOMY_DAYS + hours * ECONOMY_HOURS;
+                            break;
+                        case "Compact":
+                            cost = days * COMPACT_DAYS + hours * COMPACT_HOURS;
+                            break;
+                        case "Mid-size":
+                            cost = days * MIDSIZE_DAYS + hours * MIDSIZE_HOURS;
+                            break;
+                        case "Standard":
+                            cost = days * STANDARD_DAYS + hours * STANDARD_HOURS;
+                            break;
+                        case "Full-size":
+                            cost = days * FULLSIZE_DAYS + hours * FULLSIZE_HOURS;
+                            break;
+                        case "SUV":
+                            cost = days * SUV_DAYS + hours * SUV_HOURS;
+                            break;
+                        case "Truck":
+                            cost = days * TRUCK_DAYS + hours * TRUCK_HOURS;
+                            break;
+                    }
+                    stmt.executeQuery("UPDATE vehicle SET status = 'available' AND odometer = " + odometer + " WHERE vlicence = '" + vlicence + "'");
+                    stmt.executeQuery("INSERT INTO return VALUES(" + rid + ", CURRENT_DATE, " + odometer + ", '" + fulltank + "', " + cost + ")"); 
+                    
+                } else {
+                    System.out.println("Vehicle not found");
+                }
             } else {
                 System.out.println("Rent ID not found");
             }
@@ -1391,7 +1441,7 @@ public class SR implements ActionListener {
         int         odometer;
         String      cardName;
         String      cardNo;
-        Date        expDate;
+        String      expDate;
         int         confNo;
 		Statement   stmt;
 		ResultSet   rs;
@@ -1451,7 +1501,7 @@ public class SR implements ActionListener {
                 cardNo = rs.getString("cardNo");
                 System.out.printf("%-25s", cardNo);
 
-                expDate = rs.getDate("expDate");
+                expDate = rs.getString("expDate");
                 System.out.printf("%-15s", expDate);
 
                 confNo = rs.getInt("confNo");
