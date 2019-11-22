@@ -356,6 +356,7 @@ public class SR implements ActionListener {
 
     private String tsToString(Timestamp ts) {
         return dFormat.format(ts);
+    }
     
     private void makeReservation() {
         String      vt ="";
