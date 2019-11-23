@@ -344,22 +344,18 @@ public class SR implements ActionListener {
             }
 
             if (tsSelected) {
-                sqlQuery = "WITH res_rent AS (" + 
-                    "SELECT reservation.confNo FROM rent " + 
+                sqlQuery = "WITH res_rent(v) AS (" + 
+                    "SELECT vlicence FROM rent " + 
                     "JOIN reservation ON rent.confNo = reservation.confNo " +
-                    "WHERE " + "TO_DATE(" + fromDate + ", 'mm/dd/yyyy hh24:mi')" +  
+                    "WHERE " + "TO_DATE('" + fromDate + "' , 'mm/dd/yyyy hh24:mi')" +  
                     " BETWEEN " + "rent.fromDate" + " AND "  + "rent.ToDate " + 
-                    "OR " + "TO_DATE(" + untilDate + ", 'mm/dd/yyyy hh24:mi')" + 
-                    " BETWEEN " + "rent.fromDate" + " AND "  + "rent.ToDate " + 
-                    "WHERE " + "TO_DATE(" + fromDate + ", 'mm/dd/yyyy hh24:mi')" + " BETWEEN " + 
-                    "reservation.fromDate" + " AND "  + "reservation.ToDate " + 
-                    "OR " + "TO_DATE(" + untilDate + ", 'mm/dd/yyyy hh24:mi')" + " BETWEEN " + 
-                    "reservation.fromDate" + " AND "  + "reservation.ToDate" + 
+                    "OR " + "TO_DATE('" + untilDate + "', 'mm/dd/yyyy hh24:mi')" + 
+                    " BETWEEN " + "rent.fromDate" + " AND " + "rent.ToDate " + 
                 ") ";
                 if (vtSelected || locSelected) {
-                    whereConditions += "NOT (reservation.confNo IN res_rent OR rent.confNo IN res_rent)";
+                    whereConditions += " AND vlicence NOT IN (SELECT v FROM res_rent)";
                 } else {
-                    whereConditions = " WHERE NOT (reservation.confNo IN res_rent OR rent.confNo IN res_rent)";
+                    whereConditions = " WHERE vlicence NOT IN (SELECT v FROM res_rent)";
                 }
             }
 
