@@ -192,7 +192,7 @@ public class SR implements ActionListener {
 
 				switch(choice)
 				{
-                    case 1:   searchVehicle(); break;
+                    case 1:   searchAvailableVehicles(); break;
                     case 2:   makeReservation(); break;
                     case 3:   rentVehicle(); break;
                     case 4:   returnVehicle(); break;
@@ -229,7 +229,7 @@ public class SR implements ActionListener {
 		}
     }
 
-    private void searchVehicle() {
+    private void searchAvailableVehicles() {
         String      vt = null;
         int         location = 0; 
         Integer     choice;
@@ -362,21 +362,40 @@ public class SR implements ActionListener {
             //sqlQuery = "SELECT COUNT(*) AS total FROM reservation JOIN rent " + 
             //            "ON reservation.confNo = rent.confNo " + 
             //            "JOIN vehicle ON rent.vlicence = vehicle.vlicence " + whereConditions + ";";
-            sqlQuery += "SELECT * FROM vehicle " + whereConditions;
+            //sqlQuery += "SELECT COUNT(*) as total FROM vehicle " + whereConditions;
 
-            System.out.println("SQL QUERY: " + sqlQuery);
+            //System.out.println("SQL QUERY: " + sqlQuery);
 
             // todo: also make sure vehicles are for rent
-            rs = stmt.executeQuery(sqlQuery);
+            rs = stmt.executeQuery(sqlQuery + "SELECT COUNT(*) as total FROM vehicle " + whereConditions);
 
             // get info on ResultSet
             //int count = rs.getInt("total");
-            
+            if (rs.next()) {
+                System.out.println("Found " + rs.getInt("total") + " results.");
+                System.out.println("See results? 1. Yes\t 2. Return to menu\n");
+                
+                choiceStr = in.readLine().trim();
+                choice = (choiceStr.trim().length() == 0) ? 2 : new Integer(choiceStr);
+
+                switch(choice) {
+                    case 1: 
+                        System.out.println("SQL QUERY: " + sqlQuery + "SELECT * FROM vehicle " + whereConditions);
+                        rs = stmt.executeQuery(sqlQuery + "SELECT * FROM vehicle " + whereConditions);
+                        while (rs.next()) {
+                            printVehicles(rs);
+                        }
+                        break;
+                    default: stmt.close(); return;
+                }
+            } else {
+                System.out.println("No results found. Return to menu.");
+            }
             
             //System.out.print("Number of available vehicles: " + count);
-            while (rs.next()) {
-                printVehicles(rs);
-            }
+          //while (rs.next()) {
+          //    printVehicles(rs);
+          //}
 
             stmt.close();
         } catch (IOException e) {
@@ -386,28 +405,36 @@ public class SR implements ActionListener {
             System.out.print("SQLException caught:\n" + sE.getMessage());
         }
     }
-    // TODO: move later
-    // parses a string in the format '2001-7-27 09:00:30' into a timestamp
-    public SimpleDateFormat dFormat = new SimpleDateFormat("yyyy-mm-dd HH:mm:ss");
 
-    private Timestamp parseResponseIntoTimestamp(String str) {
+    private boolean searchVehicle(String vt, int location, Timestamp from, Timestamp to) {
         try {
-            //String[] str.split(" ");
-            if (str != null) {
-                java.util.Date d = dFormat.parse(str);
-                return new Timestamp(d.getTime());
-            }
-            return null;
-        } catch (ParseException pE) {
-            System.out.print("Parse Exception thrown!\n");
-            return null;
+            Statement stmt = con.createStatement();
+            ResultSet rs; 
+            SimpleDateFormat sDF = new SimpleDateFormat("MM/dd/yyyy HH:mm");
+            String fromDate = sDF.format(from);
+            String untilDate = sDF.format(to);
+
+
+
+            String sqlQuery = "WITH res_rent(v) AS (" + 
+                    "SELECT vlicence FROM rent " + 
+                    "JOIN reservation ON rent.confNo = reservation.confNo " +
+                    "WHERE " + "TO_DATE('" + fromDate + "' , 'mm/dd/yyyy hh24:mi')" +  
+                    " BETWEEN " + "rent.fromDate" + " AND "  + "rent.ToDate " + 
+                    "OR " + "TO_DATE('" + untilDate + "', 'mm/dd/yyyy hh24:mi')" + 
+                    " BETWEEN " + "rent.fromDate" + " AND " + "rent.ToDate " + 
+                ") SELECT COUNT(*) as total FROM vehicle WHERE vehicle.vtname = '" + vt + 
+                "' AND vehicle.location = " + location + 
+                " AND vlicence NOT IN (SELECT v FROM res_rent)";
+            System.out.println("SQL statement for searchVehicle: " + sqlQuery);
+            rs = stmt.executeQuery(sqlQuery);
+            return rs.getInt("total") > 0; 
+        } catch (SQLException sE) {
+            System.out.println("SQLException caught! + " + sE.getMessage());
         }
+        return false;
     }
 
-    private String tsToString(Timestamp ts) {
-        return dFormat.format(ts);
-    }
-    
     private void makeReservation() {
         String      vt ="";
         String      fromDay;
