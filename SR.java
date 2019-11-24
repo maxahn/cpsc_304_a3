@@ -790,8 +790,9 @@ public class SR implements ActionListener {
             rent = stmt.executeQuery("SELECT * FROM rent WHERE rid = " + rid);
             // if rent entry is found
             if (rent.next()) {
+                start_date = rent.getTimestamp("fromDate");
                 vlicence = rent.getString("vlicence");
-                vehicle = stmt.executeQuery("SELECT * FROM vehicle WHERE vlicence = '" + vlicence +"'");
+                vehicle = stmt.executeQuery("SELECT * FROM vehicle WHERE vlicence LIKE '" + vlicence +"'");
                 // if vehicle is found
                 if (vehicle.next()) {
                     vt = vehicle.getString("vtname");
@@ -799,17 +800,16 @@ public class SR implements ActionListener {
                     odometer = Integer.parseInt(in.readLine());
 
                     // is tank full?
-                    System.out.println("Is the tank full? T for full, F if it is not full.");
+                    System.out.println("Is the tank full? 1 if full, 2 if not full");
                     fulltank = in.readLine();
                     fulltank.toUpperCase();
-                    // for some reason "if (fulltank == "T" || fulltank == "F")" always resolves to false
-                    start_date = rent.getTimestamp("fromDate");
+
                     return_date = new Timestamp(System.currentTimeMillis());
-                    seconds = (int)(return_date.getTime() - start_date.getTime()) % 1000;
-                    hours = seconds % 3600;
-                    days = hours % 24;
+                    seconds = (int)(return_date.getTime() - start_date.getTime()) / 1000;
+                    days = seconds / (24 * 3600);
+                    hours = (seconds % (24*3600)) / 3600;
+
                     switch (vt) {
-                        //  Economy \t 2. Compact \t 3. Mid-size \t 4. Standard \t 5. Full-size \t 6. SUV \t 7. Truck \n");
                         case "Economy":
                             cost = days * ECONOMY_DAYS + hours * ECONOMY_HOURS;
                             break;
@@ -832,7 +832,19 @@ public class SR implements ActionListener {
                             cost = days * TRUCK_DAYS + hours * TRUCK_HOURS;
                             break;
                     }
-                    stmt.executeQuery("UPDATE vehicle SET status = 'available' AND odometer = " + odometer + " WHERE vlicence = '" + vlicence + "'");
+                    if (fulltank == "2") {
+                        cost += 50;
+                        fulltank = "F";
+                    } else {
+                        fulltank = "T";
+                    }
+
+                    System.out.println("days: " + days);
+                    System.out.println("hours: " + hours);
+                    System.out.println("Total cost: " + cost);
+                    System.out.println("");
+
+                    stmt.executeQuery("UPDATE vehicle SET status = 'available', odometer = " + odometer + " WHERE vlicence = '" + vlicence + "'");
                     stmt.executeQuery("INSERT INTO return VALUES(" + rid + ", CURRENT_DATE, " + odometer + ", '" + fulltank + "', " + cost + ")"); 
                     
                 } else {
