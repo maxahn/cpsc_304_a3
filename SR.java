@@ -2,6 +2,8 @@
 import java.sql.*;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
+import java.time.format.DateTimeFormatter;  
+import java.time.LocalDateTime;
 // for reading from the command line
 import java.io.*;
 
@@ -25,6 +27,22 @@ public class SR implements ActionListener {
     private JTextField usernameField;
     private JPasswordField passwordField;
     private JFrame mainFrame;
+
+    // Economy \t 2. Compact \t 3. Mid-size \t 4. Standard \t 5. Full-size \t 6. SUV \t 7. Truck \n");
+    private static final int ECONOMY_HOURS = 20;
+    private static final int ECONOMY_DAYS = 100;
+    private static final int COMPACT_HOURS = 18;
+    private static final int COMPACT_DAYS = 90;
+    private static final int MIDSIZE_HOURS = 25;
+    private static final int MIDSIZE_DAYS = 125;
+    private static final int STANDARD_HOURS = 28;
+    private static final int STANDARD_DAYS = 140;
+    private static final int FULLSIZE_HOURS = 30;
+    private static final int FULLSIZE_DAYS = 150;
+    private static final int SUV_HOURS = 25;
+    private static final int SUV_DAYS = 125;
+    private static final int TRUCK_HOURS = 35;
+    private static final int TRUCK_DAYS = 165;
 
     public SR() {
         mainFrame = new JFrame("User Login");
@@ -651,7 +669,7 @@ public class SR implements ActionListener {
         int         odometer = 0;
         int         dlicence = 0;
         String      cardName = "";
-        Date        expDate = new Date();
+        String      expDate = "";
         String      cardNo = "";
         String      vt = "";
         String      vlicence = "";
@@ -664,82 +682,79 @@ public class SR implements ActionListener {
         ResultSet   vehicle;
 
         try {
-            while(confirm == 3) {
-                while (true) {
-                    stmt = con.createStatement();
-                    System.out.println("What is your confirmation number?\n-1 if you haven't made one");
-                    confNo = Integer.parseInt(in.readLine());
-                    System.out.println(" ");
-                    if (confNo == -1) {
-                        makeReservation();
-                    } else {
-                        // find reservation number and correlated data
-                        reservation = stmt.executeQuery("SELECT * FROM reservation WHERE confNo =" + confNo);
-                        reservation.next();
-                        if (reservation != null) {
-                            vt = reservation.getString("vtname");
-                            dlicence = reservation.getInt("dlicence");
-                            fromDate = reservation.getTimestamp("fromDate");
-                            toDate = reservation.getTimestamp("toDate");
-                            vehicle = stmt.executeQuery("SELECT * FROM vehicle WHERE status LIKE 'available' AND vtname LIKE '" + vt + "'");
-                            // get vehicle data
-                            // TODO: if case where no vehicle available?
-                            // get last vehicle that fits given requirements
-                            while (vehicle.next()) {
-                                vlicence = vehicle.getString("vlicence");
-                                odometer = vehicle.getInt("odometer");
-                                city = vehicle.getString("city");
-                            }
-
-                            stmt.executeQuery(" UPDATE vehicle SET status = 'rented' WHERE vlicence = '" + vlicence + "'");
-
-                            // create rent ID
-                            rs = stmt.executeQuery("SELECT MAX(rid) AS r FROM rent");
-                            while(rs.next()) {
-                                rid = rs.getInt("r") + 1;
-                            }
-                            System.out.println("Enter card name: ");
-                            cardName = in.readLine();
-
-                            System.out.println("Enter card number: ");
-                            cardName = in.readLine();
-
-                            //TODO: take first 4 characters, all strictly numeric
-                            System.out.println("Enter card expiry date (MMYY): ");
-                            cardName = in.readLine();
-
-                            // print receipt
-                            System.out.println("Receipt: ");
-
-                            System.out.println("Confirmation number: ");
-                            System.out.printf("%-15s\n", confNo);
-
-                            System.out.println("Vehicle type: ");
-                            System.out.printf("%-15s\n", vt);
-
-                            System.out.println("Drivers licence: ");
-                            System.out.printf("%-15s\n", dlicence);
-
-                            System.out.println("From: ");
-                            System.out.printf("%-25s\n", fromDate);
-
-                            System.out.println("To: ");
-                            System.out.printf("%-25s\n", toDate);
-
-                            System.out.println("City: ");
-                            System.out.printf("%-15s\n", odometer);
-
-                            System.out.printf("%-15s\n", vlicence);
-
-                            // missing comma error for some reason,
-                            // someone please enlighten me.
-                            stmt.executeUpdate("INSERT into rent values (" + rid + ", '" + vlicence + "', " + dlicence + ", " + fromDate + ", " + toDate + ", " + odometer + ", '" + cardName + "', '" + cardNo + "', TO_DATE('" + expDate +  "', 'mm/yy'), " + confNo + ")");
-                            break;
+            while (true) {
+                stmt = con.createStatement();
+                System.out.println("What is your confirmation number?\n-1 if you haven't made one");
+                confNo = Integer.parseInt(in.readLine());
+                System.out.println(" ");
+                if (confNo == -1) {
+                    makeReservation();
+                } else {
+                    // find reservation number and correlated data
+                    reservation = stmt.executeQuery("SELECT * FROM reservation WHERE confNo =" + confNo);
+                    reservation.next();
+                    if (reservation != null) {
+                        vt = reservation.getString("vtname");
+                        dlicence = reservation.getInt("dlicence");
+                        fromDate = reservation.getTimestamp("fromDate");
+                        toDate = reservation.getTimestamp("toDate");
+                        vehicle = stmt.executeQuery("SELECT * FROM vehicle WHERE status LIKE 'available' AND vtname LIKE '" + vt + "'");
+                        // get vehicle data
+                        // TODO: if case where no vehicle available?
+                        // get last vehicle that fits given requirements
+                        while (vehicle.next()) {
+                            vlicence = vehicle.getString("vlicence");
+                            odometer = vehicle.getInt("odometer");
+                            city = vehicle.getString("city");
                         }
+
+                        // create rent ID
+                        rs = stmt.executeQuery("SELECT MAX(rid) AS r FROM rent");
+                        while(rs.next()) {
+                            rid = rs.getInt("r") + 1;
+                        }
+                        System.out.println("Enter card name: ");
+                        cardName = in.readLine();
+
+                        System.out.println("Enter card number: ");
+                        cardNo = in.readLine();
+
+                        // TODO: take first 4 characters, all strictly numeric
+                        System.out.println("Enter card expiry date (MM/YY): ");
+                        expDate = in.readLine();
+
+                        System.out.println("");
+
+                        // print receipt
+                        System.out.println("Receipt: ");
+
+                        System.out.println("Confirmation number: ");
+                        System.out.printf("%-15s\n", confNo);
+
+                        System.out.println("Vehicle type: ");
+                        System.out.printf("%-15s\n", vt);
+
+                        System.out.println("Drivers licence: ");
+                        System.out.printf("%-15s\n", dlicence);
+
+                        System.out.println("From: ");
+                        System.out.printf("%-25s\n", fromDate);
+
+                        System.out.println("To: ");
+                        System.out.printf("%-25s\n", toDate);
+
+                        System.out.println("City: ");
+                        System.out.printf("%-15s\n", city);
+
+                        // missing comma error for some reason,
+                        // someone please enlighten me.
+                        stmt.executeUpdate("INSERT into rent values (" + rid + ", '" + vlicence + "', " + dlicence + ", timestamp '"  + fromDate + "', timestamp '" + toDate + "', " + odometer + ", '" + cardName + "', '" + cardNo + "', TO_DATE('" + expDate +  "', 'mm/yy'), " + confNo + ")");
+                        stmt.executeQuery(" UPDATE vehicle SET status = 'rented' WHERE vlicence = '" + vlicence + "'");
+                        break;
                     }
                 }
-                stmt.close();
             }
+            stmt.close();
         } catch (IOException e) {
             System.out.println("IOException!");
             try {
@@ -754,7 +769,90 @@ public class SR implements ActionListener {
     }
 
     private void returnVehicle() {
+        int         rid;
+        int         odometer;
+        int         seconds = 0;
+        int         hours = 0;
+        int         days = 0;
+        int         cost = 0;
+        String      vlicence = "";
+        String      fulltank = "";
+        String      vt = "";
+        Statement   stmt;
+        ResultSet   rent;
+        ResultSet   vehicle;
+        Timestamp   start_date;
+        Timestamp   return_date;
+        try {
+            stmt = con.createStatement();
+            System.out.println("What is your rent ID?");
+            rid = Integer.parseInt(in.readLine());
+            rent = stmt.executeQuery("SELECT * FROM rent WHERE rid = " + rid);
+            // if rent entry is found
+            if (rent.next()) {
+                vlicence = rent.getString("vlicence");
+                vehicle = stmt.executeQuery("SELECT * FROM vehicle WHERE vlicence = '" + vlicence +"'");
+                // if vehicle is found
+                if (vehicle.next()) {
+                    vt = vehicle.getString("vtname");
+                    System.out.println("Odometer?");
+                    odometer = Integer.parseInt(in.readLine());
 
+                    // is tank full?
+                    System.out.println("Is the tank full? T for full, F if it is not full.");
+                    fulltank = in.readLine();
+                    fulltank.toUpperCase();
+                    // for some reason "if (fulltank == "T" || fulltank == "F")" always resolves to false
+                    start_date = rent.getTimestamp("fromDate");
+                    return_date = new Timestamp(System.currentTimeMillis());
+                    seconds = (int)(return_date.getTime() - start_date.getTime()) % 1000;
+                    hours = seconds % 3600;
+                    days = hours % 24;
+                    switch (vt) {
+                        //  Economy \t 2. Compact \t 3. Mid-size \t 4. Standard \t 5. Full-size \t 6. SUV \t 7. Truck \n");
+                        case "Economy":
+                            cost = days * ECONOMY_DAYS + hours * ECONOMY_HOURS;
+                            break;
+                        case "Compact":
+                            cost = days * COMPACT_DAYS + hours * COMPACT_HOURS;
+                            break;
+                        case "Mid-size":
+                            cost = days * MIDSIZE_DAYS + hours * MIDSIZE_HOURS;
+                            break;
+                        case "Standard":
+                            cost = days * STANDARD_DAYS + hours * STANDARD_HOURS;
+                            break;
+                        case "Full-size":
+                            cost = days * FULLSIZE_DAYS + hours * FULLSIZE_HOURS;
+                            break;
+                        case "SUV":
+                            cost = days * SUV_DAYS + hours * SUV_HOURS;
+                            break;
+                        case "Truck":
+                            cost = days * TRUCK_DAYS + hours * TRUCK_HOURS;
+                            break;
+                    }
+                    stmt.executeQuery("UPDATE vehicle SET status = 'available' AND odometer = " + odometer + " WHERE vlicence = '" + vlicence + "'");
+                    stmt.executeQuery("INSERT INTO return VALUES(" + rid + ", CURRENT_DATE, " + odometer + ", '" + fulltank + "', " + cost + ")"); 
+                    
+                } else {
+                    System.out.println("Vehicle not found");
+                }
+            } else {
+                System.out.println("Rent ID not found");
+            }
+            stmt.close();
+        } catch (IOException e) {
+            System.out.println("IOException!");
+            try {
+                con.close();
+                System.exit(-1);
+            } catch (SQLException ex) {
+                System.out.println("Message: " + ex.getMessage());
+            }
+        } catch (SQLException ex) {
+            System.out.println("Message: " + ex.getMessage());
+        }
     }
 
     private void totalRental() {
@@ -1545,7 +1643,7 @@ public class SR implements ActionListener {
         int         odometer;
         String      cardName;
         String      cardNo;
-        Date        expDate;
+        String      expDate;
         int         confNo;
 		Statement   stmt;
 		ResultSet   rs;
@@ -1605,7 +1703,7 @@ public class SR implements ActionListener {
                 cardNo = rs.getString("cardNo");
                 System.out.printf("%-25s", cardNo);
 
-                expDate = rs.getDate("expDate");
+                expDate = rs.getString("expDate");
                 System.out.printf("%-15s", expDate);
 
                 confNo = rs.getInt("confNo");
