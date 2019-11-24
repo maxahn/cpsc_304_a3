@@ -28,6 +28,22 @@ public class SR implements ActionListener {
     private JPasswordField passwordField;
     private JFrame mainFrame;
 
+    // Economy \t 2. Compact \t 3. Mid-size \t 4. Standard \t 5. Full-size \t 6. SUV \t 7. Truck \n");
+    private static final int ECONOMY_HOURS = 20;
+    private static final int ECONOMY_DAYS = 100;
+    private static final int COMPACT_HOURS = 18;
+    private static final int COMPACT_DAYS = 90;
+    private static final int MIDSIZE_HOURS = 25;
+    private static final int MIDSIZE_DAYS = 125;
+    private static final int STANDARD_HOURS = 28;
+    private static final int STANDARD_DAYS = 140;
+    private static final int FULLSIZE_HOURS = 30;
+    private static final int FULLSIZE_DAYS = 150;
+    private static final int SUV_HOURS = 25;
+    private static final int SUV_DAYS = 125;
+    private static final int TRUCK_HOURS = 35;
+    private static final int TRUCK_DAYS = 165;
+
     public SR() {
         mainFrame = new JFrame("User Login");
   
@@ -194,7 +210,7 @@ public class SR implements ActionListener {
 
 				switch(choice)
 				{
-                    case 1:   searchVehicle(); break;
+                    case 1:   searchAvailableVehicles(); break;
                     case 2:   makeReservation(false); break;
                     case 3:   rentVehicle(); break;
                     case 4:   returnVehicle(); break;
@@ -231,10 +247,214 @@ public class SR implements ActionListener {
 		}
     }
 
-    private void searchVehicle() {
+    private void searchAvailableVehicles() {
+        String      vt = null;
+        int         location = 0; 
+        Integer     choice;
+        String      sqlQuery = "";
 
+        String      fromDay;
+        String      untilDay;
+        String      fromTime;
+        String      untilTime;
+        String      fromDate;
+        String      untilDate;
+
+        String whereConditions = "";
+
+        boolean     valid = false;
+        boolean     vtSelected = true;
+        boolean     locSelected = true;
+        boolean     tsSelected = true;
+
+        Timestamp   start = null;
+        Timestamp   end = null;
+        ResultSet   rs;
+
+
+        try {
+            Statement stmt = con.createStatement();
+
+            System.out.print("Choose one of the follow type of vehicle:\n");
+            System.out.print("1. Economy \t 2. Compact \t 3. Mid-size \t 4. Standard \t 5. Full-size \t 6. SUV \t 7. Truck \t 8. Any\n");
+
+
+            String choiceStr = in.readLine().trim();
+            choice = (choiceStr.trim().length() == 0) ? 8 : new Integer(choiceStr);
+            //TODO: check if user gave a valid vehicle type
+            //  is there a table of just vehicle types? 
+            switch(choice) {
+                case 1: vt = "Economy"; break;
+                case 2: vt = "Compact"; break;
+                case 3: vt = "Mid-size"; break;
+                case 4: vt = "Standard"; break;
+                case 5: vt = "Full-size"; break;
+                case 6: vt = "SUV"; break;
+                case 7: vt = "Truck"; break;
+                case 8: vtSelected = false; break;
+            }
+
+            System.out.print("Choose one of the following locations:\n");
+            System.out.print("1. Vancouver \t 2. Richmond \t 3. Burnaby \t 4. Any\n");
+
+            choiceStr = in.readLine().trim();
+            choice = (choiceStr.trim().length() == 0) ? 0 : new Integer(choiceStr);
+
+            switch(choice) {
+                case 1: location = 1; break;
+                case 2: location = 2; break;
+                case 3: location = 3; break;
+                default: locSelected = false; break;
+            }
+            
+            System.out.print("From which day?\n");
+            System.out.print("In format of mm/dd/yyyy, ie. 01/01/2020\n");
+            fromDay = in.readLine();
+
+            System.out.println(" ");
+
+            System.out.print("From what time?\n");
+            System.out.print("In format of hh[24]:mm, ie. 13:30\n");
+            fromTime = in.readLine();
+
+            System.out.println(" ");
+
+            System.out.print("To which day?\n");
+            System.out.print("In format of mm/dd/yyyy, ie. 01/01/2020\n");
+            untilDay = in.readLine();
+
+            System.out.println(" ");
+
+            System.out.print("To what time?\n");
+            System.out.print("In format of hh[24]:mm, ie. 13:30\n");
+            untilTime = in.readLine();
+
+            // if any are blank, tsSelected is false
+            tsSelected =    fromDay.trim().length()  != 0 && 
+                            fromTime.trim().length()  != 0 && 
+                            untilDay.trim().length()  != 0 && 
+                            untilTime.trim().length() != 0;
+
+            System.out.println(" ");
+
+            //what is fromDay = null
+            fromDate = fromDay + " " + fromTime;
+            untilDate = untilDay + " " + untilTime;
+
+            System.out.printf("Vehicle: %s\n",  (!vtSelected)  ? "N/A" : vt);
+            System.out.printf("Location: %s\n", (!locSelected) ? "N/A" : location);
+            System.out.printf("From: \t %s\n",  (!tsSelected)  ? "N/A" : fromDate);
+            System.out.printf("To: \t %s\n",    (!tsSelected)  ? "N/A" : untilDate);
+
+            System.out.println(" ");
+            //TO_DATE('" + fromDate + "', 'mm/dd/yyyy hh24:mi'), TO_DATE('" + untilDate + "', 'mm/dd/yyyy hh24:mi'))");
+
+            String conditions = "";
+
+            if (vtSelected) {
+                //TODO also must check vtname is valid
+                whereConditions += "WHERE vehicle.vtname = '" + vt + "'";
+            } 
+            if (!vtSelected && locSelected) {
+                whereConditions = "WHERE vehicle.location = '" + location + "'";
+            } else if (locSelected) {
+                whereConditions += " AND vehicle.location = '" + location + "'";
+            }
+
+            if (tsSelected) {
+                sqlQuery = "WITH res_rent(v) AS (" + 
+                    "SELECT vlicence FROM rent " + 
+                    "JOIN reservation ON rent.confNo = reservation.confNo " +
+                    "WHERE " + "TO_DATE('" + fromDate + "' , 'mm/dd/yyyy hh24:mi')" +  
+                    " BETWEEN " + "rent.fromDate" + " AND "  + "rent.ToDate " + 
+                    "OR " + "TO_DATE('" + untilDate + "', 'mm/dd/yyyy hh24:mi')" + 
+                    " BETWEEN " + "rent.fromDate" + " AND " + "rent.ToDate " + 
+                ") ";
+                if (vtSelected || locSelected) {
+                    whereConditions += " AND vlicence NOT IN (SELECT v FROM res_rent)";
+                } else {
+                    whereConditions = " WHERE vlicence NOT IN (SELECT v FROM res_rent)";
+                }
+            }
+
+            //sqlQuery = "SELECT COUNT(*) AS total FROM reservation JOIN rent " + 
+            //            "ON reservation.confNo = rent.confNo " + 
+            //            "JOIN vehicle ON rent.vlicence = vehicle.vlicence " + whereConditions + ";";
+            //sqlQuery += "SELECT COUNT(*) as total FROM vehicle " + whereConditions;
+
+            //System.out.println("SQL QUERY: " + sqlQuery);
+
+            // todo: also make sure vehicles are for rent
+            rs = stmt.executeQuery(sqlQuery + "SELECT COUNT(*) as total FROM vehicle " + whereConditions);
+
+            // get info on ResultSet
+            //int count = rs.getInt("total");
+            if (rs.next()) {
+                System.out.println("Found " + rs.getInt("total") + " results.");
+                System.out.println("See results? 1. Yes\t 2. Return to menu\n");
+                
+                choiceStr = in.readLine().trim();
+                choice = (choiceStr.trim().length() == 0) ? 2 : new Integer(choiceStr);
+
+                switch(choice) {
+                    case 1: 
+                        System.out.println("SQL QUERY: " + sqlQuery + "SELECT * FROM vehicle " + whereConditions);
+                        rs = stmt.executeQuery(sqlQuery + "SELECT * FROM vehicle " + whereConditions);
+                        while (rs.next()) {
+                            printVehicles(rs);
+                        }
+                        break;
+                    default: stmt.close(); return;
+                }
+            } else {
+                System.out.println("No results found. Return to menu.");
+            }
+            
+            //System.out.print("Number of available vehicles: " + count);
+          //while (rs.next()) {
+          //    printVehicles(rs);
+          //}
+
+            stmt.close();
+        } catch (IOException e) {
+            System.out.print("IOException caught\n");
+
+        } catch (SQLException sE) {
+            System.out.print("SQLException caught:\n" + sE.getMessage());
+        }
     }
-    
+
+    private boolean searchVehicle(String vt, int location, String from, String to) {
+        try {
+            Statement stmt = con.createStatement();
+            ResultSet rs; 
+            //SimpleDateFormat sDF = new SimpleDateFormat("MM/dd/yyyy HH:mm");
+            String fromDate = from;
+            String untilDate = to;
+
+
+
+            String sqlQuery = "WITH res_rent(v) AS (" + 
+                    "SELECT vlicence FROM rent " + 
+                    "JOIN reservation ON rent.confNo = reservation.confNo " +
+                    "WHERE " + "TO_DATE('" + fromDate + "' , 'mm/dd/yyyy hh24:mi')" +  
+                    " BETWEEN " + "rent.fromDate" + " AND "  + "rent.ToDate " + 
+                    "OR " + "TO_DATE('" + untilDate + "', 'mm/dd/yyyy hh24:mi')" + 
+                    " BETWEEN " + "rent.fromDate" + " AND " + "rent.ToDate " + 
+                ") SELECT COUNT(*) as total FROM vehicle WHERE vehicle.vtname = '" + vt + 
+                "' AND vehicle.location = " + location + 
+                " AND vlicence NOT IN (SELECT v FROM res_rent)";
+            System.out.println("SQL statement for searchVehicle: " + sqlQuery);
+            System.out.println(" ");
+            rs = stmt.executeQuery(sqlQuery);
+            rs.next();
+            return rs.getInt("total") > 0; 
+        } catch (SQLException sE) {
+            System.out.println("SQLException caught! + " + sE.getMessage());
+        }
+        return false;
+    }
+
     private void makeReservation(boolean fromRent) {
         String      vt ="";
         String      fromDay;
@@ -316,68 +536,76 @@ public class SR implements ActionListener {
             untilDate = untilDay + " " + untilTime;
 
             System.out.printf("Vehicle: %s\n", vt);
+            switch(location) {
+                case 1: System.out.printf("Location: Vancouver\n");
+                case 2: System.out.printf("Location: Richmond\n");
+                case 3: System.out.printf("Location: Burnaby\n");
+            }
             System.out.printf("From: \t %s\n", fromDate);
             System.out.printf("To: \t %s\n", untilDate);
 
             System.out.println(" ");
 
-            // Need to check for vehicle availability
-            
-            System.out.print("Confirm Reservation?\n1. Confirm \t 2. Cancel\n");
+            available = searchVehicle(vt, location, fromDate, untilDate);
 
-            choice = Integer.parseInt(in.readLine());
-
-            System.out.println(" ");
-
-            if(choice == 1) {
-                cancel = false;
+            if(!available) {
+                System.out.print("Sorry, no avaiable matching vehicles.");
             } else {
-                cancel = true;
-            }
-                
-            if(cancel) {
-                System.out.print("Reservation cancelled");
-            } else {
-                System.out.print("What is your driver licence number?\n");
-                dlicence = Integer.parseInt(in.readLine());
+                System.out.print("Confirm Reservation?\n1. Confirm \t 2. Cancel\n");
 
-                System.out.println(" ");
-
-                rs = stmt.executeQuery("SELECT dlicence FROM customer");
-                    
-                while(rs.next()) {
-                    if(dlicence == rs.getInt("dlicence")) {
-                        newuser = false;
-                    }
-                }
-            
-                if(newuser) {
-                    addNewUser(dlicence);
-                }
-
-                if(fromRent) {
-                } else {
-                    rs = stmt.executeQuery("SELECT MAX(confNo) AS conf FROM reservation");
-                    while(rs.next()) {
-                        confNo = rs.getInt("conf") + 1;
-                    }
+                choice = Integer.parseInt(in.readLine());
     
-                    System.out.print("Reservation complete:\n");
-                    System.out.printf("Vehicle: %s\n", vt);
-                    System.out.printf("From: \t %s\n", fromDate);
-                    System.out.printf("To: \t %s\n", untilDate);
-                    System.out.printf("Confirmation Number: \t %d \n", confNo);
+                System.out.println(" ");
+    
+                if(choice == 1) {
+                    cancel = false;
+                } else {
+                    cancel = true;
+                }
+                    
+                if(cancel) {
+                    System.out.print("Reservation cancelled");
+                } else {
+                    System.out.print("What is your driver licence number?\n");
+                    dlicence = Integer.parseInt(in.readLine());
     
                     System.out.println(" ");
     
-                    stmt.executeUpdate("INSERT into reservation values (" + confNo + ", '" + vt + "', " + dlicence + 
-                        ", TO_DATE('" + fromDate + "', 'mm/dd/yyyy hh24:mi'), TO_DATE('" + untilDate + "', 'mm/dd/yyyy hh24:mi'))");
+                    rs = stmt.executeQuery("SELECT dlicence FROM customer");
+    
+                    while(rs.next()) {
+                        if(dlicence == rs.getInt("dlicence")) {
+                            newuser = false;
+                        }
+                    }
+                
+                    if(newuser) {
+                        addNewUser(dlicence);
+                    }
+    
+                    if(!fromRent) {
+                    } else {
+                        rs = stmt.executeQuery("SELECT MAX(confNo) AS conf FROM reservation");
+                        while(rs.next()) {
+                            confNo = rs.getInt("conf") + 1;
+                        }
+        
+                        System.out.print("Reservation complete:\n");
+                        System.out.printf("Vehicle: %s\n", vt);
+                        System.out.printf("From: \t %s\n", fromDate);
+                        System.out.printf("To: \t %s\n", untilDate);
+                        System.out.printf("Confirmation Number: \t %d \n", confNo);
+        
+                        System.out.println(" ");
+        
+                        stmt.executeUpdate("INSERT into reservation values (" + confNo + ", '" + vt + "', " + dlicence + 
+                            ", TO_DATE('" + fromDate + "', 'mm/dd/yyyy hh24:mi'), TO_DATE('" + untilDate + "', 'mm/dd/yyyy hh24:mi'))");
+                    }
                 }
+                // close the statement; 
+                // the ResultSet will also be closed
+                stmt.close();
             }
-
-            // close the statement; 
-            // the ResultSet will also be closed
-            stmt.close();
         } catch (IOException e) {
 			System.out.println("IOException!");
 
@@ -389,7 +617,7 @@ public class SR implements ActionListener {
 			}
 		} catch (SQLException ex) {
             System.out.println("Message: " + ex.getMessage());
-        }
+        } 
     }
 
     private void addNewUser(int licenceNum) {
@@ -504,9 +732,11 @@ public class SR implements ActionListener {
                         System.out.println("Enter card number: ");
                         cardNo = in.readLine();
 
-                        //TODO: take first 4 characters, all strictly numeric
+                        // TODO: take first 4 characters, all strictly numeric
                         System.out.println("Enter card expiry date (MM/YY): ");
                         expDate = in.readLine();
+
+                        System.out.println("");
 
                         // print receipt
                         System.out.println("Receipt: ");
@@ -556,41 +786,73 @@ public class SR implements ActionListener {
     private void returnVehicle() {
         int         rid;
         int         odometer;
+        int         seconds = 0;
+        int         hours = 0;
+        int         days = 0;
+        int         cost = 0;
         String      vlicence = "";
         String      fulltank = "";
+        String      vt = "";
         Statement   stmt;
         ResultSet   rent;
         ResultSet   vehicle;
+        Timestamp   start_date;
         Timestamp   return_date;
-        DateTimeFormatter dtf;
         try {
             stmt = con.createStatement();
             System.out.println("What is your rent ID?");
             rid = Integer.parseInt(in.readLine());
-            
-            // get vlicence, odometer
             rent = stmt.executeQuery("SELECT * FROM rent WHERE rid = " + rid);
+            // if rent entry is found
             if (rent.next()) {
                 vlicence = rent.getString("vlicence");
-            }
-            if (vlicence != "") {
-                // odometer?
-                System.out.println("Odometer?");
-                odometer = Integer.parseInt(in.readLine());
+                vehicle = stmt.executeQuery("SELECT * FROM vehicle WHERE vlicence = '" + vlicence +"'");
+                // if vehicle is found
+                if (vehicle.next()) {
+                    vt = vehicle.getString("vtname");
+                    System.out.println("Odometer?");
+                    odometer = Integer.parseInt(in.readLine());
 
-                // is tank full?
-                System.out.println("Is the tank full? T for full, F if it is not full.");
-                fulltank = in.readLine();
-                fulltank.toUpperCase();
-
-                // get current date time
-                // convert into string, then format
-                LocalDateTime now = LocalDateTime.now();
-
-                // update vehicle status back to available
-                // create new tuple in return
-                stmt.executeQuery("UPDATE vehicle SET status = 'available' WHERE vlicence = '" + vlicence + "'");
-                stmt.executeQuery("INSERT INTO return VALUES(" + rid + ", TO_TIMESTAMP('" + now +  "', 'YYYY-MM-DD HH24:MI:SS'), " + odometer + ", '" + fulltank + "', 123)"); 
+                    // is tank full?
+                    System.out.println("Is the tank full? T for full, F if it is not full.");
+                    fulltank = in.readLine();
+                    fulltank.toUpperCase();
+                    // for some reason "if (fulltank == "T" || fulltank == "F")" always resolves to false
+                    start_date = rent.getTimestamp("fromDate");
+                    return_date = new Timestamp(System.currentTimeMillis());
+                    seconds = (int)(return_date.getTime() - start_date.getTime()) % 1000;
+                    hours = seconds % 3600;
+                    days = hours % 24;
+                    switch (vt) {
+                        //  Economy \t 2. Compact \t 3. Mid-size \t 4. Standard \t 5. Full-size \t 6. SUV \t 7. Truck \n");
+                        case "Economy":
+                            cost = days * ECONOMY_DAYS + hours * ECONOMY_HOURS;
+                            break;
+                        case "Compact":
+                            cost = days * COMPACT_DAYS + hours * COMPACT_HOURS;
+                            break;
+                        case "Mid-size":
+                            cost = days * MIDSIZE_DAYS + hours * MIDSIZE_HOURS;
+                            break;
+                        case "Standard":
+                            cost = days * STANDARD_DAYS + hours * STANDARD_HOURS;
+                            break;
+                        case "Full-size":
+                            cost = days * FULLSIZE_DAYS + hours * FULLSIZE_HOURS;
+                            break;
+                        case "SUV":
+                            cost = days * SUV_DAYS + hours * SUV_HOURS;
+                            break;
+                        case "Truck":
+                            cost = days * TRUCK_DAYS + hours * TRUCK_HOURS;
+                            break;
+                    }
+                    stmt.executeQuery("UPDATE vehicle SET status = 'available' AND odometer = " + odometer + " WHERE vlicence = '" + vlicence + "'");
+                    stmt.executeQuery("INSERT INTO return VALUES(" + rid + ", CURRENT_DATE, " + odometer + ", '" + fulltank + "', " + cost + ")"); 
+                    
+                } else {
+                    System.out.println("Vehicle not found");
+                }
             } else {
                 System.out.println("Rent ID not found");
             }
@@ -1396,7 +1658,7 @@ public class SR implements ActionListener {
         int         odometer;
         String      cardName;
         String      cardNo;
-        Date        expDate;
+        String      expDate;
         int         confNo;
 		Statement   stmt;
 		ResultSet   rs;
@@ -1417,7 +1679,7 @@ public class SR implements ActionListener {
 			// display column names;
 			for (int i = 0; i < numCols; i++) {
                 // get column name and print it
-                if(rsmd.getColumnName(i+1).equals("FROMDATE") || rsmd.getColumnName(i+1).equals("TODATE") || rsmd.getColumnName(i+1).equals("CARDNO")) {
+                if(rsmd.getColumnName(i+1).equals("FROMDATE") || rsmd.getColumnName(i+1).equals("TODATE") || rsmd.getColumnName(i+1).equals("CARDNO") || rsmd.getColumnName(i+1).equals("EXPDATE")) {
                     System.out.printf("%-25s", rsmd.getColumnName(i+1));
                 } else {
                     System.out.printf("%-15s", rsmd.getColumnName(i+1));
@@ -1456,8 +1718,8 @@ public class SR implements ActionListener {
                 cardNo = rs.getString("cardNo");
                 System.out.printf("%-25s", cardNo);
 
-                expDate = rs.getDate("expDate");
-                System.out.printf("%-15s", expDate);
+                expDate = rs.getString("expDate");
+                System.out.printf("%-25s", expDate);
 
                 confNo = rs.getInt("confNo");
                 System.out.printf("%-15s\n", confNo);
@@ -1697,6 +1959,24 @@ public class SR implements ActionListener {
 		catch (SQLException ex) {
 			System.out.println("Message: " + ex.getMessage());
 		}	
+    }
+
+    private void printVehicles(ResultSet rs) {
+        try {
+            System.out.printf("%-15s", rs.getString("vlicence"));
+            System.out.printf("%-15s", rs.getInt("vid"));
+            System.out.printf("%-15s", rs.getString("make"));
+            System.out.printf("%-15s", rs.getString("model"));
+            System.out.printf("%-15s", rs.getInt("year"));
+            System.out.printf("%-15s", rs.getString("color"));
+            System.out.printf("%-15s", rs.getInt("odometer"));
+            System.out.printf("%-15s", rs.getString("status"));
+            System.out.printf("%-15s", rs.getString("vtname"));
+            System.out.printf("%-15s", rs.getInt("location"));
+            System.out.printf("%-15s\n", rs.getString("city"));
+        } catch (SQLException sE) {
+            System.out.println("caught sqlexception in printVehicles");
+        }
     }
 
     public static void main(String args[]) {
