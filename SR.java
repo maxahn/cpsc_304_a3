@@ -363,6 +363,7 @@ public class SR implements ActionListener {
                 }
             }
 
+            System.out.println("SQL STATEMENT EXECUTED: " + sqlQuery + "SELECT COUNT(*) as total FROM vehicle " + whereConditions);
             rs = stmt.executeQuery(sqlQuery + "SELECT COUNT(*) as total FROM vehicle " + whereConditions);
 
             // get info on ResultSet
@@ -375,7 +376,7 @@ public class SR implements ActionListener {
 
                 switch(choice) {
                     case 1: 
-                        System.out.println("SQL QUERY: " + sqlQuery + "SELECT * FROM vehicle " + whereConditions);
+                        System.out.println("SQL STATEMENT EXECUTED: " + sqlQuery + "SELECT * FROM vehicle " + whereConditions);
                         rs = stmt.executeQuery(sqlQuery + "SELECT * FROM vehicle " + whereConditions);
                         while (rs.next()) {
                             printVehicles(rs);
@@ -415,6 +416,7 @@ public class SR implements ActionListener {
                 " AND vlicence NOT IN (SELECT v FROM res_rent)";
             System.out.println("SQL statement for searchVehicle: " + sqlQuery);
             System.out.println(" ");
+            System.out.println("SQL STATEMENT EXECUTED: " + sqlQuery);
             rs = stmt.executeQuery(sqlQuery);
             rs.next();
             return rs.getInt("total") > 0; 
@@ -540,6 +542,7 @@ public class SR implements ActionListener {
     
                     System.out.println(" ");
     
+                    System.out.println("SQL STATEMENT EXECUTED: SELECT dlicence FROM customer");
                     rs = stmt.executeQuery("SELECT dlicence FROM customer");
     
                     while(rs.next()) {
@@ -555,6 +558,7 @@ public class SR implements ActionListener {
                     if(fromRent) {
                         noReserveRent(vt, dlicence, fromDate, untilDate);
                     } else{
+                        System.out.println("SQL STATEMENT EXECUTED SELECT MAX(confNo) AS conf FROM reservation");
                         rs = stmt.executeQuery("SELECT MAX(confNo) AS conf FROM reservation");
                         while(rs.next()) {
                             confNo = rs.getInt("conf") + 1;
@@ -671,6 +675,7 @@ public class SR implements ActionListener {
                     break;
                 } else {
                 // find reservation number and correlated data
+                    System.out.println("SQL STATEMENT EXECUTED: SELECT * FROM reservation WHERE confNo =" + confNo);
                     reservation = stmt.executeQuery("SELECT * FROM reservation WHERE confNo =" + confNo);
                     reservation.next();
                     if (reservation != null) {
@@ -678,6 +683,7 @@ public class SR implements ActionListener {
                         dlicence = reservation.getInt("dlicence");
                         fromDate = reservation.getTimestamp("fromDate");
                         toDate = reservation.getTimestamp("toDate");
+                        System.out.println("SQL STATEMENT EXECUTED: SELECT * FROM vehicle WHERE status LIKE 'available' AND vtname LIKE '" + vt + "'");
                         vehicle = stmt.executeQuery("SELECT * FROM vehicle WHERE status LIKE 'available' AND vtname LIKE '" + vt + "'");
                         // get vehicle data
                         // get last vehicle that fits given requirements
@@ -687,6 +693,7 @@ public class SR implements ActionListener {
                         }
 
                         // create rent ID
+                        System.out.println("SQL STATEMENT EXECUTED: SELECT MAX(rid) AS r FROM rent");
                         rs = stmt.executeQuery("SELECT MAX(rid) AS r FROM rent");
                         while(rs.next()) {
                             rid = rs.getInt("r") + 1;
@@ -726,9 +733,15 @@ public class SR implements ActionListener {
                         System.out.println("Vehicle licence: ");
                         System.out.printf("%-15s\n", vlicence);
 
+                        System.out.println("SQL STATEMENT EXECUTED: INSERT into rent values (" + rid + ", '" + vlicence + "', " + dlicence + 
+                            ", timestamp '"  + fromDate + "', timestamp '" + toDate + "', " + odometer + ", '" + cardName + "', '" + cardNo + 
+                            "', TO_DATE('" + expDate +  "', 'mm/yy'), " + confNo + ")");
+
                         stmt.executeUpdate("INSERT into rent values (" + rid + ", '" + vlicence + "', " + dlicence + 
                             ", timestamp '"  + fromDate + "', timestamp '" + toDate + "', " + odometer + ", '" + cardName + "', '" + cardNo + 
                             "', TO_DATE('" + expDate +  "', 'mm/yy'), " + confNo + ")");
+
+                        System.out.println("SQL STATEMENT EXECUTED: UPDATE vehicle SET status = 'rented' WHERE vlicence = '" + vlicence + "'");
                         stmt.executeQuery(" UPDATE vehicle SET status = 'rented' WHERE vlicence = '" + vlicence + "'");
                         break;
                     }
@@ -760,6 +773,7 @@ public class SR implements ActionListener {
         ResultSet   vehicle;
         try {
             stmt = con.createStatement();
+            System.out.println("SQL STATEMENT EXECUTED: SELECT * FROM vehicle WHERE status LIKE 'available' AND vtname LIKE '" + vt + "'");
             vehicle = stmt.executeQuery("SELECT * FROM vehicle WHERE status LIKE 'available' AND vtname LIKE '" + vt + "'");
             // get vehicle data
             // get last vehicle that fits given requirements
@@ -769,6 +783,7 @@ public class SR implements ActionListener {
             }
 
             // create rent ID
+            System.out.println("SELECT MAX(rid) AS r FROM rent");
             rs = stmt.executeQuery("SELECT MAX(rid) AS r FROM rent");
             while(rs.next()) {
                 rid = rs.getInt("r") + 1;
@@ -805,9 +820,14 @@ public class SR implements ActionListener {
             System.out.println("Vehicle licence: ");
             System.out.printf("%-15s\n", vlicence);
 
+            System.out.println("SQL STATEMENT EXECUTED: INSERT into rent values (" + rid + ", '" + vlicence + "', " + dlicence + 
+                            ", TO_DATE('" + fromDate + "', 'mm/dd/yyyy hh24:mi'), TO_DATE('" + toDate + "', 'mm/dd/yyyy hh24:mi'), " 
+                            + odometer + ", '" + cardName + "', '" + cardNo + "', TO_DATE('" + expDate +  "', 'mm/yy'), null)");
+
             stmt.executeUpdate("INSERT into rent values (" + rid + ", '" + vlicence + "', " + dlicence + 
                             ", TO_DATE('" + fromDate + "', 'mm/dd/yyyy hh24:mi'), TO_DATE('" + toDate + "', 'mm/dd/yyyy hh24:mi'), " 
                             + odometer + ", '" + cardName + "', '" + cardNo + "', TO_DATE('" + expDate +  "', 'mm/yy'), null)");
+            System.out.println("SQL STATEMENT EXECUTED: UPDATE vehicle SET status = 'rented' WHERE vlicence = '" + vlicence + "'");
             stmt.executeQuery(" UPDATE vehicle SET status = 'rented' WHERE vlicence = '" + vlicence + "'");
         } catch (IOException e) {
             System.out.println("IOException!");
@@ -841,11 +861,13 @@ public class SR implements ActionListener {
             stmt = con.createStatement();
             System.out.println("What is your rent ID?");
             rid = Integer.parseInt(in.readLine());
+            System.out.println("SQL STATEMENT EXECUTED: SELECT * FROM rent WHERE rid = " + rid);
             rent = stmt.executeQuery("SELECT * FROM rent WHERE rid = " + rid);
             // if rent entry is found
             if (rent.next()) {
                 start_date = rent.getTimestamp("fromDate");
                 vlicence = rent.getString("vlicence");
+                System.out.println("SQL STATEMENT EXECUTED: SELECT * FROM vehicle WHERE vlicence LIKE '" + vlicence +"'");
                 vehicle = stmt.executeQuery("SELECT * FROM vehicle WHERE vlicence LIKE '" + vlicence +"'");
                 // if vehicle is found
                 if (vehicle.next()) {
@@ -885,7 +907,9 @@ public class SR implements ActionListener {
                             cost = days * TRUCK_DAYS + hours * TRUCK_HOURS;
                             break;
                     }
+                    System.out.println("EXECUTE SQL STATEMENT: UPDATE vehicle SET status = 'available', odometer = " + odometer + " WHERE vlicence = '" + vlicence + "'");
                     stmt.executeQuery("UPDATE vehicle SET status = 'available', odometer = " + odometer + " WHERE vlicence = '" + vlicence + "'");
+                    System.out.println("EXECUTE SQL STATEMENT: INSERT INTO return VALUES(" + rid + ", CURRENT_DATE, " + odometer + ", '" + fulltank + "', " + cost + ")");
                     stmt.executeQuery("INSERT INTO return VALUES(" + rid + ", CURRENT_DATE, " + odometer + ", '" + fulltank + "', " + cost + ")"); 
                     
                 } else {
@@ -928,6 +952,11 @@ public class SR implements ActionListener {
 	   
 		try {
 			stmt = con.createStatement();
+
+            System.out.println("EXECUTE SQL STATEMENT: SELECT v.vlicence, v.vid, v.make, v.model, v.year, v.color, v.odometer, v.status, v.vtname, v.location, v.city " +
+            "FROM vehicle v, rent r " +
+            "WHERE v.vlicence = r.vlicence AND TO_CHAR(r.fromDate, 'YYYY-MM-DD') LIKE TO_CHAR(CURRENT_DATE, 'YYYY-MM-DD') " +
+            "ORDER BY v.location, v.vtname");
 
 			rs = stmt.executeQuery(
             "SELECT v.vlicence, v.vid, v.make, v.model, v.year, v.color, v.odometer, v.status, v.vtname, v.location, v.city " +
@@ -993,6 +1022,12 @@ public class SR implements ActionListener {
                 System.out.printf("%-15s\n", city);
             }
             
+            System.out.println("EXECUTE SQL STATEMENT: SELECT v.location, v.vtname, COUNT(v.vid) AS \"NUMBER\" " +
+            "FROM vehicle v, rent r " +
+            "WHERE v.vlicence = r.vlicence AND TO_CHAR(r.fromDate, 'YYYY-MM-DD') LIKE TO_CHAR(CURRENT_DATE, 'YYYY-MM-DD') " +
+            "GROUP BY v.location, v.vtname " +
+            "ORDER BY v.location, v.vtname");
+
             rs = stmt.executeQuery(
             "SELECT v.location, v.vtname, COUNT(v.vid) AS \"NUMBER\" " +
             "FROM vehicle v, rent r " +
@@ -1033,6 +1068,10 @@ public class SR implements ActionListener {
                 number = rs.getInt("number");
                 System.out.printf("%-15s\n", number);
             }
+
+            System.out.println("EXECUTE SQL STATEMENT: SELECT COUNT(*) AS \"NUMBER\" " +
+            "FROM rent r " +
+            "WHERE TO_CHAR(r.fromDate, 'YYYY-MM-DD') LIKE TO_CHAR(CURRENT_DATE, 'YYYY-MM-DD')");
 
             rs = stmt.executeQuery(
             "SELECT COUNT(*) AS \"NUMBER\" " +
@@ -1094,6 +1133,12 @@ public class SR implements ActionListener {
                 }
             }
 
+            
+            System.out.println("EXECUTE SQL STATEMENT: SELECT v.vlicence, v.vid, v.make, v.model, v.year, v.color, v.odometer, v.status, v.vtname, v.location, v.city " +
+            "FROM vehicle v, rent r " +
+            "WHERE v.vlicence = r.vlicence AND TO_CHAR(r.fromDate, 'YYYY-MM-DD') LIKE TO_CHAR(CURRENT_DATE, 'YYYY-MM-DD') AND v.location = " + branch + " " +
+            "ORDER BY v.vtname");
+
 			rs = stmt.executeQuery(
             "SELECT v.vlicence, v.vid, v.make, v.model, v.year, v.color, v.odometer, v.status, v.vtname, v.location, v.city " +
             "FROM vehicle v, rent r " +
@@ -1158,6 +1203,12 @@ public class SR implements ActionListener {
                 System.out.printf("%-15s\n", city);
             }
             
+            System.out.println("EXECUTE SQL STATEMENT: SELECT v.vtname, COUNT(v.vid) AS \"NUMBER\" " +
+            "FROM vehicle v, rent r " +
+            "WHERE v.vlicence = r.vlicence AND TO_CHAR(r.fromDate, 'YYYY-MM-DD') LIKE TO_CHAR(CURRENT_DATE, 'YYYY-MM-DD') AND v.location = " + branch + " " +
+            "GROUP BY v.vtname " +
+            "ORDER BY v.vtname");
+
             rs = stmt.executeQuery(
             "SELECT v.vtname, COUNT(v.vid) AS \"NUMBER\" " +
             "FROM vehicle v, rent r " +
@@ -1195,6 +1246,10 @@ public class SR implements ActionListener {
                 number = rs.getInt("number");
                 System.out.printf("%-15s\n", number);
             }
+
+            System.out.println("EXECUTE SQL STATEMENT: SELECT COUNT(*) AS \"NUMBER\" " +
+            "FROM vehicle v, rent r " +
+            "WHERE v.vlicence = r.vlicence AND TO_CHAR(r.fromDate, 'YYYY-MM-DD') LIKE TO_CHAR(CURRENT_DATE, 'YYYY-MM-DD') AND v.location = " + branch);
 
             rs = stmt.executeQuery(
             "SELECT COUNT(*) AS \"NUMBER\" " +
@@ -1248,6 +1303,11 @@ public class SR implements ActionListener {
 		try {
             stmt = con.createStatement();
             
+            System.out.println("EXECUTE SQL STATEMENT: SELECT v.vlicence, v.vid, v.make, v.model, v.year, v.color, v.odometer, v.status, v.vtname, v.location, v.city " +
+            "FROM vehicle v, rent r, return t " +
+            "WHERE v.vlicence = r.vlicence AND r.rid = t.rid AND TO_CHAR(t.return_date, 'YYYY-MM-DD') LIKE TO_CHAR(CURRENT_DATE, 'YYYY-MM-DD') " +
+            "ORDER BY v.location, v.vtname");
+
 			rs = stmt.executeQuery(
             "SELECT v.vlicence, v.vid, v.make, v.model, v.year, v.color, v.odometer, v.status, v.vtname, v.location, v.city " +
             "FROM vehicle v, rent r, return t " +
@@ -1312,6 +1372,12 @@ public class SR implements ActionListener {
                 System.out.printf("%-15s\n", city);
             }
             
+            System.out.println("EXECUTE SQL STATEMENT: SELECT v.location, v.vtname, COUNT(v.vid) AS \"NUMBER\", SUM(t.value) AS \"REVENUE\" " +
+            "FROM vehicle v, rent r, return t " +
+            "WHERE v.vlicence = r.vlicence AND r.rid = t.rid AND TO_CHAR(r.fromDate, 'YYYY-MM-DD') LIKE TO_CHAR(CURRENT_DATE, 'YYYY-MM-DD') " +
+            "GROUP BY v.location, v.vtname " +
+            "ORDER BY v.location, v.vtname");
+
             rs = stmt.executeQuery(
             "SELECT v.location, v.vtname, COUNT(v.vid) AS \"NUMBER\", SUM(t.value) AS \"REVENUE\" " +
             "FROM vehicle v, rent r, return t " +
@@ -1355,6 +1421,10 @@ public class SR implements ActionListener {
                 revenue = rs.getDouble("revenue");
                 System.out.printf("%-15s\n", revenue);
             }
+
+            System.out.println("EXECUTE SQL STATEMENT: SELECT COUNT(*) AS \"NUMBER\", SUM(value) AS \"REVENUE\"" +
+            "FROM return " +
+            "WHERE TO_CHAR(return_date, 'YYYY-MM-DD') LIKE TO_CHAR(CURRENT_DATE, 'YYYY-MM-DD')");
 
             rs = stmt.executeQuery(
             "SELECT COUNT(*) AS \"NUMBER\", SUM(value) AS \"REVENUE\"" +
@@ -1420,6 +1490,11 @@ public class SR implements ActionListener {
                 }
             }
 
+            System.out.println("EXECUTE SQL STATEMENT: SELECT v.vlicence, v.vid, v.make, v.model, v.year, v.color, v.odometer, v.status, v.vtname, v.location, v.city " +
+            "FROM vehicle v, rent r, return t " +
+            "WHERE v.vlicence = r.vlicence AND r.rid = t.rid AND TO_CHAR(t.return_date, 'YYYY-MM-DD') LIKE TO_CHAR(CURRENT_DATE, 'YYYY-MM-DD') AND v.location = " + branch + " " +
+            "ORDER BY v.location, v.vtname");
+ 
 			rs = stmt.executeQuery(
             "SELECT v.vlicence, v.vid, v.make, v.model, v.year, v.color, v.odometer, v.status, v.vtname, v.location, v.city " +
             "FROM vehicle v, rent r, return t " +
@@ -1484,6 +1559,12 @@ public class SR implements ActionListener {
                 System.out.printf("%-15s\n", city);
             }
             
+            System.out.println("EXECUTE SQL STATEMENT: SELECT v.location, v.vtname, COUNT(v.vid) AS \"NUMBER\", SUM(t.value) AS \"REVENUE\" " +
+            "FROM vehicle v, rent r, return t " +
+            "WHERE v.vlicence = r.vlicence AND r.rid = t.rid AND TO_CHAR(r.fromDate, 'YYYY-MM-DD') LIKE TO_CHAR(CURRENT_DATE, 'YYYY-MM-DD') AND v.location = " + branch + " " +
+            "GROUP BY v.location, v.vtname " +
+            "ORDER BY v.location, v.vtname");
+
             rs = stmt.executeQuery(
             "SELECT v.location, v.vtname, COUNT(v.vid) AS \"NUMBER\", SUM(t.value) AS \"REVENUE\" " +
             "FROM vehicle v, rent r, return t " +
@@ -1527,6 +1608,10 @@ public class SR implements ActionListener {
                 revenue = rs.getDouble("revenue");
                 System.out.printf("%-15s\n", revenue);
             }
+
+            System.out.println("EXECUTE SQL STATEMENT: SELECT COUNT(*) AS \"NUMBER\", SUM(t.value) AS \"REVENUE\"" +
+            "FROM vehicle v, rent r, return t " +
+            "WHERE v.vlicence = r.vlicence AND r.rid = t.rid AND TO_CHAR(t.return_date, 'YYYY-MM-DD') LIKE TO_CHAR(CURRENT_DATE, 'YYYY-MM-DD') AND v.location = " + branch);
 
             rs = stmt.executeQuery(
             "SELECT COUNT(*) AS \"NUMBER\", SUM(t.value) AS \"REVENUE\"" +
@@ -1572,6 +1657,7 @@ public class SR implements ActionListener {
 		try {
 			stmt = con.createStatement();
 
+            System.out.println("EXECUTE SQL STATEMENT: SELECT * FROM customer");
 			rs = stmt.executeQuery("SELECT * FROM customer");
 
 			// get info on ResultSet
@@ -1631,6 +1717,7 @@ public class SR implements ActionListener {
 		try {
 			stmt = con.createStatement();
 
+            System.out.println("EXECUTE SQL STATEMENT: SELECT * FROM reservation");
 			rs = stmt.executeQuery("SELECT * FROM reservation");
 
 			// get info on ResultSet
@@ -1701,6 +1788,7 @@ public class SR implements ActionListener {
 		try {
 			stmt = con.createStatement();
 
+            System.out.println("EXECUTE SQL STATEMENT: SELECT * FROM rent");
 			rs = stmt.executeQuery("SELECT * FROM rent");
 
 			// get info on ResultSet
@@ -1781,6 +1869,7 @@ public class SR implements ActionListener {
 		try {
 			stmt = con.createStatement();
 
+            System.out.println("EXECUTE SQL STATEMENT: SELECT * FROM return");
 			rs = stmt.executeQuery("SELECT * FROM return");
 
 			// get info on ResultSet
@@ -1852,6 +1941,7 @@ public class SR implements ActionListener {
 		try {
 			stmt = con.createStatement();
 
+            System.out.println("EXECUTE SQL STATEMENT: SELECT * FROM vehicle");
 			rs = stmt.executeQuery("SELECT * FROM vehicle");
 
 			// get info on ResultSet
@@ -1936,6 +2026,7 @@ public class SR implements ActionListener {
 		try {
 			stmt = con.createStatement();
 
+            System.out.println("EXECUTE SQL STATEMENT: SELECT * FROM vt");
 			rs = stmt.executeQuery("SELECT * FROM vt");
 
 			// get info on ResultSet

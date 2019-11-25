@@ -13,7 +13,7 @@ insert into vehicle values ('DE213B', 10003, 'Ford', 'Mondeo', 2009, 'white', 98
 insert into vehicle values ('ED001E', 10004, 'Nissan', 'Maxima', 2018, 'white', 8223, 'available', 'Full-size', 1, 'Vancouver');
 insert into vehicle values ('DG156E', 10005, 'Chevrolet', 'Tahoe', 2015, 'black', 23145, 'maintenance', 'SUV', 3, 'Burnaby');
 insert into vehicle values ('FA157B', 10006, 'Chevrolet', 'Montana', 2011, 'black', 8872, 'available', 'Truck', 3, 'Burnaby');
-insert into vehicle values ('HI416A', 10007, 'Honda', 'City', 2013, 'silver', 77765, 'available', 'Economy', ', 'Richmond');
+insert into vehicle values ('HI416A', 10007, 'Honda', 'City', 2013, 'silver', 77765, 'available', 'Economy', 'Richmond');
 insert into vehicle values ('EA173E', 10008, 'Honda', 'Fit', 2005, 'red', 17835, 'available', 'Economy', 2, 'Richmond');
 insert into vehicle values ('EF103A', 10009, 'Dodge', 'Dart', 2015, 'white', 45614, 'available', 'Compact', 1, 'Vancouver');
 insert into vehicle values ('AF105E', 10010, 'Dodge', 'Charger', 2018, 'black', 7843, 'rented', 'Full-size', 1, 'Vancouver');
